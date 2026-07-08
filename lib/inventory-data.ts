@@ -288,6 +288,13 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
   },
 ]
 
+// Assign deterministic (seeded by skuId) model + door trim so server and client match.
+export const SKU_ROWS: SkuRow[] = SKU_ROWS_RAW.map((row) => ({
+  ...row,
+  modelName: getRandomModel(row.skuId),
+  doorTrim: getRandomDoorTrim(row.skuId),
+}))
+
 // Picking efficiency vs storage depth for a 4-Way shuttle lane.
 // Deeper storage = higher density but slower retrieval (more shuffles).
 export function depthEfficiencyCurve(row: SkuRow) {
