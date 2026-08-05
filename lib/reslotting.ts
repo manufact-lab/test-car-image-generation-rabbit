@@ -219,7 +219,7 @@ export function findReslottingCandidates(
     const baseGrade = base ? classifySlot(base, t).finalGrade : grade.finalGrade
     const gradeChanged = baseGrade !== grade.finalGrade
     const reason = gradeChanged
-      ? `주문 유입 → 등급 ${baseGrade} → ${grade.finalGrade} 변동`
+      ? `주문 유입 → 리슬롯팅 (등급 변동 ${baseGrade}→${grade.finalGrade})`
       : "초기 배치와 권장 위치 불일치"
 
     candidates.push({

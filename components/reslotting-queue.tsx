@@ -110,7 +110,7 @@ function QueueItem({
           {currentDepth}-Deep
         </span>
         <span aria-hidden className={direction === "forward" ? "text-primary" : "text-warning"}>
-          {direction === "forward" ? "→ 전면(얕게)" : "→ 후면(깊게)"}
+          →
         </span>
         <span
           className={`rounded-md border px-2 py-1 font-mono text-xs ${
