@@ -73,7 +73,8 @@ export type SkuRow = {
   partName: string
   vehicles: VehicleType[]
   inventory: number // EA in stock
-  dailyOutflow: number // EA / day
+  dailyOutflow: number // EA / day (물량 = 하루에 나가는 수량)
+  dailyPickFreq: number // picks / day (빈도 = 하루에 몇 번 집는지, 오더 라인 수)
   category: string
   weightKg: number
   unitCost: number // USD
@@ -136,6 +137,7 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["sedan", "suv"],
     inventory: 84,
     dailyOutflow: 168,
+    dailyPickFreq: 6, // 물량A·빈도C 괴리: 대량 배치로 몰아서 출고
     category: "Braking",
     weightKg: 2.4,
     unitCost: 38,
@@ -152,6 +154,7 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["sedan", "hatchback", "van"],
     inventory: 1420,
     dailyOutflow: 210,
+    dailyPickFreq: 52, // 물량A·빈도A: 정합
     category: "Filtration",
     weightKg: 0.3,
     unitCost: 9,
@@ -169,6 +172,7 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["truck", "van"],
     inventory: 96,
     dailyOutflow: 24,
+    dailyPickFreq: 8, // 물량C·빈도C: 정합
     category: "Engine",
     weightKg: 0.6,
     unitCost: 22,
@@ -182,6 +186,7 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["sedan", "suv", "hatchback"],
     inventory: 640,
     dailyOutflow: 88,
+    dailyPickFreq: 31, // 물량B·빈도B: 정합
     category: "Filtration",
     weightKg: 0.2,
     unitCost: 12,
@@ -198,6 +203,7 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["sedan", "hatchback"],
     inventory: 210,
     dailyOutflow: 145,
+    dailyPickFreq: 44, // 물량A·빈도A: 정합
     category: "Ignition",
     weightKg: 0.1,
     unitCost: 16,
@@ -211,6 +217,7 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["suv", "truck"],
     inventory: 58,
     dailyOutflow: 132,
+    dailyPickFreq: 40, // 물량A·빈도A (현재 5-Deep에 잘못 배치 → 리슬롯팅 대상)
     category: "Suspension",
     weightKg: 3.8,
     unitCost: 74,
@@ -227,6 +234,7 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["sedan", "suv", "van", "hatchback"],
     inventory: 2100,
     dailyOutflow: 60,
+    dailyPickFreq: 38, // 물량B·빈도B: 정합
     category: "Body",
     weightKg: 0.4,
     unitCost: 11,
@@ -245,6 +253,7 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["truck", "van"],
     inventory: 38,
     dailyOutflow: 96,
+    dailyPickFreq: 34, // 물량B·빈도B: 정합
     category: "Cooling",
     weightKg: 0.7,
     unitCost: 19,
@@ -258,6 +267,7 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["sedan", "suv", "truck", "van"],
     inventory: 305,
     dailyOutflow: 42,
+    dailyPickFreq: 47, // 물량C·빈도A 괴리: 무거워 낱개로 자주 집힘
     category: "Electrical",
     weightKg: 14.2,
     unitCost: 129,
@@ -276,6 +286,7 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["suv", "truck"],
     inventory: 14,
     dailyOutflow: 33,
+    dailyPickFreq: 41, // 물량C·빈도A 괴리: 소량이지만 매우 자주 집힘
     category: "Steering",
     weightKg: 1.1,
     unitCost: 28,

@@ -1,15 +1,18 @@
+"use client"
+
 import { Sparkles, ArrowRight } from "lucide-react"
-import {
-  SKU_ROWS,
-  abcClass,
-  recommendedDepth,
-  type AbcClass,
-} from "@/lib/inventory-data"
+import { useReslotting } from "@/components/reslotting-context"
+import { classifySlot, GRADE_DEPTH_LABEL, type SlotGrade } from "@/lib/reslotting"
 
 const TIER_META: Record<
-  AbcClass,
+  SlotGrade,
   { title: string; blurb: string; accent: string }
 > = {
+  S: {
+    title: "S급 · 초고빈도",
+    blurb: "레인 최전면(1-Deep) 배치로 피킹 최속화",
+    accent: "text-primary",
+  },
   A: {
     title: "A급 · 고빈도 출하",
     blurb: "통로 인접, 간섭 최소 구역 배치",
@@ -27,9 +30,13 @@ const TIER_META: Record<
   },
 }
 
+const ORDER: SlotGrade[] = ["S", "A", "B", "C"]
+
 export function AiOptimizer() {
-  const groups: Record<AbcClass, typeof SKU_ROWS> = { A: [], B: [], C: [] }
-  for (const row of SKU_ROWS) groups[abcClass(row)].push(row)
+  const { rows, thresholds } = useReslotting()
+
+  const groups: Record<SlotGrade, number> = { S: 0, A: 0, B: 0, C: 0 }
+  for (const row of rows) groups[classifySlot(row, thresholds).finalGrade] += 1
 
   return (
     <section className="rounded-xl border border-border bg-card">
@@ -42,13 +49,13 @@ export function AiOptimizer() {
             AI 4-Way 셔틀 적재 전략
           </h2>
           <p className="text-pretty text-sm text-muted-foreground">
-            최근 출하량과 고객사 주문 예측(Forecast)을 분석해 셔틀 적재 깊이(Depth)를 추천합니다.
+            물량과 피킹 빈도를 교차(Cross-ABC) 분석해 셔틀 적재 깊이(Depth)를 추천합니다.
           </p>
         </div>
       </div>
 
       <div className="flex flex-col gap-3 p-5">
-        {(["A", "B", "C"] as AbcClass[]).map((cls) => {
+        {ORDER.map((cls) => {
           const meta = TIER_META[cls]
           return (
             <div
@@ -71,10 +78,10 @@ export function AiOptimizer() {
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="whitespace-nowrap font-mono text-sm font-semibold text-foreground">
-                    {recommendedDepth(cls)}
+                    {GRADE_DEPTH_LABEL[cls]}
                   </p>
                   <p className="whitespace-nowrap text-xs text-muted-foreground">
-                    {groups[cls].length} SKU
+                    {groups[cls]} SKU
                   </p>
                 </div>
               </div>
