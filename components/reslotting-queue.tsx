@@ -2,7 +2,7 @@
 
 import { useReslotting, type QueueDecision } from "@/components/reslotting-context"
 import { CrossAbcBadge, SlotGradeBadge } from "@/components/grade-badge"
-import { formatSec, type ReslottingCandidate } from "@/lib/reslotting"
+import { type ReslottingCandidate } from "@/lib/reslotting"
 
 const DECISION_LABEL: Record<QueueDecision, string> = {
   pending: "대기",
@@ -27,7 +27,7 @@ export function ReslottingQueue() {
         <div>
           <h2 className="text-sm font-semibold text-foreground">리슬롯팅 큐</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            주문 유입에 따른 물량·빈도 변동으로 재평가된 슬롯 이동 후보 · 변동 건 우선, 비용편익순
+            주문 유입에 따른 물량·빈도 변동으로 재평가된 슬롯 이동 후보 · 변동 건 우선, 이동 개선폭순
           </p>
         </div>
         <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium tabular-nums text-secondary-foreground">
@@ -70,7 +70,7 @@ function QueueItem({
   onHold: () => void
   onApply: () => void
 }) {
-  const { row, grade, currentDepth, targetDepth, benefit, direction, reason, gradeChanged } = cand
+  const { row, grade, currentDepth, targetDepth, direction, reason, gradeChanged } = cand
   const applied = decision === "applied"
 
   return (
@@ -136,28 +136,6 @@ function QueueItem({
           ))}
         </div>
       )}
-
-      {/* 비용편익 */}
-      <dl className="mt-3 grid grid-cols-3 gap-3 rounded-md border border-border bg-background/40 p-3 text-center">
-        <div>
-          <dt className="text-xs text-muted-foreground">일일 절감</dt>
-          <dd className="mt-0.5 text-sm font-semibold tabular-nums text-primary">
-            {formatSec(benefit.dailyTimeSavedSec)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">이동 비용</dt>
-          <dd className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">
-            {formatSec(benefit.moveCostSec)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">회수 기간</dt>
-          <dd className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">
-            {isFinite(benefit.paybackDays) ? `${benefit.paybackDays.toFixed(1)}일` : "—"}
-          </dd>
-        </div>
-      </dl>
 
       {/* 액션 */}
       <div className="mt-3 flex items-center gap-2">
