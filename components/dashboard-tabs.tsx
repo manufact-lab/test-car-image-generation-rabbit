@@ -7,6 +7,7 @@ import { AiOptimizer } from "@/components/ai-optimizer"
 import { ReslottingQueue } from "@/components/reslotting-queue"
 import { RuleSettings } from "@/components/rule-settings"
 import { OrderInjector } from "@/components/order-injector"
+import { SlottingAlert } from "@/components/slotting-alert"
 import { useReslotting } from "@/components/reslotting-context"
 
 type TabKey = "dashboard" | "queue"
@@ -84,6 +85,8 @@ export function DashboardTabs() {
           </div>
         </div>
       )}
+
+      {tab === "dashboard" && <SlottingAlert onReview={() => setTab("queue")} />}
     </div>
   )
 }

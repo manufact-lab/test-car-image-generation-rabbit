@@ -1,6 +1,5 @@
 import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardTabs } from "@/components/dashboard-tabs"
-import { SlottingAlert } from "@/components/slotting-alert"
 import { ReslottingProvider } from "@/components/reslotting-context"
 
 export default function Page() {
@@ -21,8 +20,6 @@ export default function Page() {
 
           <DashboardTabs />
         </main>
-
-        <SlottingAlert />
       </div>
     </ReslottingProvider>
   )

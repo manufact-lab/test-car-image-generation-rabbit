@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Zap, X, ArrowRight } from "lucide-react"
 import { SLOTTING_ALERT } from "@/lib/inventory-data"
 
-export function SlottingAlert() {
+export function SlottingAlert({ onReview }: { onReview?: () => void }) {
   const [open, setOpen] = useState(true)
 
   if (!open) return null
@@ -48,10 +48,13 @@ export function SlottingAlert() {
             <div className="mt-3 flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  onReview?.()
+                  setOpen(false)
+                }}
                 className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
               >
-                재배치 승인
+                큐에서 검토
               </button>
               <button
                 type="button"
