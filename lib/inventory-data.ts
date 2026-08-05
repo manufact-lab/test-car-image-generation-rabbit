@@ -130,10 +130,10 @@ export function recommendedDepth(cls: AbcClass): string {
   return "4–5 Deep"
 }
 
-const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
+// 모든 제품은 도어트림이다. partName은 doorTrim 장착 위치에서 파생하므로 raw에서는 제외한다.
+const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim" | "partName">[] = [
   {
     skuId: "BRK-PAD-0192",
-    partName: "Front Brake Pad Set",
     vehicles: ["sedan", "suv"],
     inventory: 84,
     dailyOutflow: 168,
@@ -150,7 +150,6 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
   },
   {
     skuId: "OIL-FLT-2231",
-    partName: "Oil Filter Cartridge",
     vehicles: ["sedan", "hatchback", "van"],
     inventory: 1420,
     dailyOutflow: 210,
@@ -168,7 +167,6 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
   },
   {
     skuId: "ALT-BLT-7788",
-    partName: "Alternator Drive Belt",
     vehicles: ["truck", "van"],
     inventory: 96,
     dailyOutflow: 24,
@@ -182,7 +180,6 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
   },
   {
     skuId: "CAB-AIR-3310",
-    partName: "Cabin Air Filter",
     vehicles: ["sedan", "suv", "hatchback"],
     inventory: 640,
     dailyOutflow: 88,
@@ -199,7 +196,6 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
   },
   {
     skuId: "SPK-PLG-5521",
-    partName: "Iridium Spark Plug",
     vehicles: ["sedan", "hatchback"],
     inventory: 210,
     dailyOutflow: 145,
@@ -213,7 +209,6 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
   },
   {
     skuId: "SHK-ABS-9014",
-    partName: "Rear Shock Absorber",
     vehicles: ["suv", "truck"],
     inventory: 58,
     dailyOutflow: 132,
@@ -230,7 +225,6 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
   },
   {
     skuId: "WPR-BLD-1102",
-    partName: "Wiper Blade Assembly",
     vehicles: ["sedan", "suv", "van", "hatchback"],
     inventory: 2100,
     dailyOutflow: 60,
@@ -249,7 +243,6 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
   },
   {
     skuId: "RAD-HSE-4409",
-    partName: "Radiator Coolant Hose",
     vehicles: ["truck", "van"],
     inventory: 38,
     dailyOutflow: 96,
@@ -263,7 +256,6 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
   },
   {
     skuId: "BAT-12V-6600",
-    partName: "12V AGM Battery",
     vehicles: ["sedan", "suv", "truck", "van"],
     inventory: 305,
     dailyOutflow: 42,
@@ -282,7 +274,6 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
   },
   {
     skuId: "TIE-ROD-2048",
-    partName: "Steering Tie Rod End",
     vehicles: ["suv", "truck"],
     inventory: 14,
     dailyOutflow: 33,
@@ -300,11 +291,16 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
 ]
 
 // Assign deterministic (seeded by skuId) model + door trim so server and client match.
-export const SKU_ROWS: SkuRow[] = SKU_ROWS_RAW.map((row) => ({
-  ...row,
-  modelName: getRandomModel(row.skuId),
-  doorTrim: getRandomDoorTrim(row.skuId),
-}))
+// 모든 제품은 도어트림이므로 partName도 장착 위치에서 파생한다. (예: "도어트림 · 앞문 좌")
+export const SKU_ROWS: SkuRow[] = SKU_ROWS_RAW.map((row) => {
+  const doorTrim = getRandomDoorTrim(row.skuId)
+  return {
+    ...row,
+    modelName: getRandomModel(row.skuId),
+    doorTrim,
+    partName: `도어트림 · ${DOOR_TRIM_LABELS[doorTrim]}`,
+  }
+})
 
 // Picking efficiency vs storage depth for a 4-Way shuttle lane.
 // Deeper storage = higher density but slower retrieval (more shuffles).
