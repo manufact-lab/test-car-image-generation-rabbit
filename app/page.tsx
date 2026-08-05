@@ -22,8 +22,12 @@ export default function Page() {
         <OverviewCards />
 
         <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
-          <InventoryTable />
-          <AiOptimizer />
+          <div className="min-w-0">
+            <InventoryTable />
+          </div>
+          <div className="min-w-0">
+            <AiOptimizer />
+          </div>
         </div>
       </main>
 
