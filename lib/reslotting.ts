@@ -24,6 +24,9 @@ export type SlottingThresholds = {
   // 빈도축 (picks/day)
   freqA: number
   freqB: number
+  // 리슬롯팅 플래그 임계: |현재 depth - 권장 depth| 이 값 이상일 때만 후보로 올림
+  // (값을 키우면 잦은 소폭 이동을 억제 = 과도한 재배치 방지)
+  minDepthGap: number
 }
 
 export const DEFAULT_THRESHOLDS: SlottingThresholds = {
@@ -31,6 +34,7 @@ export const DEFAULT_THRESHOLDS: SlottingThresholds = {
   volumeB: 45,
   freqA: 35,
   freqB: 15,
+  minDepthGap: 1,
 }
 
 export function volumeAxis(row: SkuRow, t: SlottingThresholds): Axis {
@@ -84,8 +88,6 @@ export type GradeResult = {
   finalGrade: SlotGrade
   targetDepth: number
   appliedRules: AppliedRule[]
-  // 물량축과 빈도축이 2단계 이상 어긋나면 "괴리(mismatch)"로 표시
-  isMismatch: boolean
 }
 
 const GRADE_ORDER: SlotGrade[] = ["C", "B", "A", "S"]
@@ -93,11 +95,6 @@ const GRADE_ORDER: SlotGrade[] = ["C", "B", "A", "S"]
 function promote(grade: SlotGrade, steps: number): SlotGrade {
   const i = GRADE_ORDER.indexOf(grade)
   return GRADE_ORDER[Math.min(GRADE_ORDER.length - 1, i + steps)]
-}
-
-function axisDistance(a: Axis, b: Axis): number {
-  const order: Axis[] = ["C", "B", "A"]
-  return Math.abs(order.indexOf(a) - order.indexOf(b))
 }
 
 // 명시적 예외 룰 엔진. 룰은 순서대로 평가되며 각 룰이 왜 적용됐는지 기록된다.
@@ -112,18 +109,21 @@ export function classifySlot(
   const appliedRules: AppliedRule[] = []
   let finalGrade = baseGrade
 
-  // 룰 1) 물량 C + 빈도 A 괴리: 소량이지만 매우 자주 집힌다 -> 최소 A(1–2 Deep)로 승급.
-  if (volume === "C" && freq === "A") {
+  // 룰 1) 물량 C + 빈도 A: 소량이지만 매우 자주 집힌다 -> A(1–2 Deep) 전면 승급.
+  // (빈도가 물량을 이긴다. 룰 2와 중복 승급하지 않도록 여기서 확정한다.)
+  const r1Applied = volume === "C" && freq === "A"
+  if (r1Applied) {
     finalGrade = "A"
     appliedRules.push({
       id: "R1-lowvol-highfreq",
-      label: "물량C · 빈도A 예외 승급",
+      label: "물량C · 빈도A 전면 승급",
       effect: "소량 다빈도 → 1–2 Deep 전면 배치",
     })
   }
 
   // 룰 2) 빈도 A인데 기본 등급이 B 이하 -> 한 단계 승급(자주 집는 건 얕게).
-  if (freq === "A" && (baseGrade === "B" || baseGrade === "C")) {
+  // 룰 1이 이미 확정한 경우엔 적용하지 않는다(중복 승급 방지).
+  if (!r1Applied && freq === "A" && (baseGrade === "B" || baseGrade === "C")) {
     const bumped = promote(finalGrade, 1)
     if (bumped !== finalGrade) {
       finalGrade = bumped
@@ -135,7 +135,8 @@ export function classifySlot(
     }
   }
 
-  // 룰 3) 물량 A + 빈도 C 괴리: 대량이지만 몰아서 집는다 -> B(3 Deep)로 강등해 밀도 확보.
+  // 룰 3) 물량 A + 빈도 C: 대량이지만 몰아서 집는다 -> B(3 Deep)로 강등해 밀도 확보.
+  // 물량이 많아도 자주 집지 않으면 전면 자리를 양보한다(정상 케이스, 경고 아님).
   if (volume === "A" && freq === "C") {
     finalGrade = "B"
     appliedRules.push({
@@ -145,8 +146,6 @@ export function classifySlot(
     })
   }
 
-  const isMismatch = axisDistance(volume, freq) >= 2
-
   return {
     volume,
     freq,
@@ -154,11 +153,10 @@ export function classifySlot(
     finalGrade,
     targetDepth: GRADE_TARGET_DEPTH[finalGrade],
     appliedRules,
-    isMismatch,
   }
 }
 
-// 리슬롯팅 후보: 현재 depth와 권장 targetDepth가 다르면 이동 후보.
+// 리슬롯팅 후보: 현재 depth와 권장 targetDepth가 minDepthGap 이상 다르면 이동 후보.
 export type ReslottingCandidate = {
   row: SkuRow
   grade: GradeResult
@@ -167,6 +165,10 @@ export type ReslottingCandidate = {
   depthDelta: number // 양수 = 더 얕게(전면), 음수 = 더 깊게
   direction: "forward" | "backward"
   benefit: CostBenefit
+  // 후보가 된 사유 — 주문 유입으로 등급이 바뀌었는지, 초기 배치 불일치인지 구분
+  reason: string
+  gradeChanged: boolean
+  baseGrade: SlotGrade
 }
 
 export type CostBenefit = {
@@ -199,15 +201,27 @@ export function costBenefit(
 export function findReslottingCandidates(
   rows: SkuRow[],
   t: SlottingThresholds = DEFAULT_THRESHOLDS,
+  baselineById?: Map<string, SkuRow>,
 ): ReslottingCandidate[] {
   const candidates: ReslottingCandidate[] = []
   for (const row of rows) {
     const grade = classifySlot(row, t)
     const currentDepth = row.location.depth
     const targetDepth = grade.targetDepth
-    if (currentDepth === targetDepth) continue
+    // minDepthGap 미만의 소폭 차이는 무시 (과도한 재배치 방지)
+    if (Math.abs(currentDepth - targetDepth) < Math.max(1, t.minDepthGap)) continue
+
     const depthDelta = currentDepth - targetDepth
     const benefit = costBenefit(row, currentDepth, targetDepth)
+
+    // 주문 유입으로 등급이 바뀌었는지 판정: 베이스라인(주문 델타 없는 원본) 등급과 비교
+    const base = baselineById?.get(row.skuId)
+    const baseGrade = base ? classifySlot(base, t).finalGrade : grade.finalGrade
+    const gradeChanged = baseGrade !== grade.finalGrade
+    const reason = gradeChanged
+      ? `주문 유입 → 등급 ${baseGrade} → ${grade.finalGrade} 변동`
+      : "초기 배치와 권장 위치 불일치"
+
     candidates.push({
       row,
       grade,
@@ -216,10 +230,16 @@ export function findReslottingCandidates(
       depthDelta,
       direction: depthDelta > 0 ? "forward" : "backward",
       benefit,
+      reason,
+      gradeChanged,
+      baseGrade,
     })
   }
-  // 우선순위 정렬: 점수 높은 순
-  return candidates.sort((a, b) => b.benefit.score - a.benefit.score)
+  // 우선순위 정렬: 주문 유입으로 변동된 건 우선, 그다음 비용편익 점수순
+  return candidates.sort((a, b) => {
+    if (a.gradeChanged !== b.gradeChanged) return a.gradeChanged ? -1 : 1
+    return b.benefit.score - a.benefit.score
+  })
 }
 
 // legacy abcClass와의 호환용 라벨

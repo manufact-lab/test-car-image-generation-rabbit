@@ -137,12 +137,12 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["sedan", "suv"],
     inventory: 84,
     dailyOutflow: 168,
-    dailyPickFreq: 6, // 물량A·빈도C 괴리: 대량 배치로 몰아서 출고
+    dailyPickFreq: 6, // 물량A·빈도C: 대량이지만 몰아서 출고 → 3-Deep 고밀도 (정상 배치)
     category: "Braking",
     weightKg: 2.4,
     unitCost: 38,
     chassisZone: "front-axle",
-    location: { zone: "Zone A", aisle: "A-02", rack: 3, level: 2, depth: 1 },
+    location: { zone: "Zone A", aisle: "A-02", rack: 3, level: 2, depth: 3 },
     shipLines: [
       { plant: 2, line: 1 },
       { plant: 3, line: 2 },
@@ -159,7 +159,7 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     weightKg: 0.3,
     unitCost: 9,
     chassisZone: "engine",
-    location: { zone: "Zone A", aisle: "A-05", rack: 6, level: 1, depth: 2 },
+    location: { zone: "Zone A", aisle: "A-05", rack: 6, level: 1, depth: 1 },
     shipLines: [
       { plant: 1, line: 1 },
       { plant: 1, line: 3 },
@@ -217,7 +217,7 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["suv", "truck"],
     inventory: 58,
     dailyOutflow: 132,
-    dailyPickFreq: 40, // 물량A·빈도A (현재 5-Deep에 잘못 배치 → 리슬롯팅 대상)
+    dailyPickFreq: 40, // 물량A·빈도A → 권장 1-Deep. 현재 5-Deep에 오배치된 기존 리슬롯팅 대상
     category: "Suspension",
     weightKg: 3.8,
     unitCost: 74,
@@ -234,12 +234,12 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["sedan", "suv", "van", "hatchback"],
     inventory: 2100,
     dailyOutflow: 60,
-    dailyPickFreq: 38, // 물량B·빈도B: 정합
+    dailyPickFreq: 38, // 물량B·빈도A → 권장 2-Deep (자주 집혀 전면 배치)
     category: "Body",
     weightKg: 0.4,
     unitCost: 11,
     chassisZone: "cabin",
-    location: { zone: "Zone B", aisle: "B-06", rack: 7, level: 4, depth: 4 },
+    location: { zone: "Zone B", aisle: "B-06", rack: 7, level: 4, depth: 2 },
     shipLines: [
       { plant: 1, line: 1 },
       { plant: 2, line: 1 },
@@ -253,12 +253,12 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["truck", "van"],
     inventory: 38,
     dailyOutflow: 96,
-    dailyPickFreq: 34, // 물량B·빈도B: 정합
+    dailyPickFreq: 34, // 물량B·빈도B → 권장 3-Deep. 빈도가 35 넘으면 A로 승급(주문 유입 데모용 경계값)
     category: "Cooling",
     weightKg: 0.7,
     unitCost: 19,
     chassisZone: "engine",
-    location: { zone: "Zone C", aisle: "C-02", rack: 3, level: 3, depth: 4 },
+    location: { zone: "Zone C", aisle: "C-02", rack: 3, level: 3, depth: 3 },
     shipLines: [{ plant: 4, line: 1 }],
   },
   {
@@ -267,12 +267,12 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["sedan", "suv", "truck", "van"],
     inventory: 305,
     dailyOutflow: 42,
-    dailyPickFreq: 47, // 물량C·빈도A 괴리: 무거워 낱개로 자주 집힘
+    dailyPickFreq: 47, // 물량C·빈도A: 무거워 낱개로 자주 집힘 → 룰1로 2-Deep 전면 승급
     category: "Electrical",
     weightKg: 14.2,
     unitCost: 129,
     chassisZone: "engine",
-    location: { zone: "Zone B", aisle: "B-01", rack: 2, level: 1, depth: 3 },
+    location: { zone: "Zone B", aisle: "B-01", rack: 2, level: 1, depth: 2 },
     shipLines: [
       { plant: 1, line: 1 },
       { plant: 2, line: 1 },
@@ -286,12 +286,12 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim">[] = [
     vehicles: ["suv", "truck"],
     inventory: 14,
     dailyOutflow: 33,
-    dailyPickFreq: 41, // 물량C·빈도A 괴리: 소량이지만 매우 자주 집힘
+    dailyPickFreq: 41, // 물량C·빈도A: 소량이지만 매우 자주 집힘 → 룰1로 2-Deep 전면 승급
     category: "Steering",
     weightKg: 1.1,
     unitCost: 28,
     chassisZone: "front-axle",
-    location: { zone: "Zone C", aisle: "C-03", rack: 4, level: 2, depth: 4 },
+    location: { zone: "Zone C", aisle: "C-03", rack: 4, level: 2, depth: 2 },
     shipLines: [
       { plant: 3, line: 2 },
       { plant: 4, line: 2 },
@@ -359,6 +359,6 @@ export type SlottingAlert = {
 export const SLOTTING_ALERT: SlottingAlert = {
   skuId: "SHK-ABS-9014",
   from: "5-Deep",
-  to: "2-Deep",
+  to: "1-Deep",
   reason: "Outflow velocity jumped +186% over the last 14 days.",
 }

@@ -4,7 +4,9 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react"
@@ -20,67 +22,112 @@ import {
 // 큐 항목의 처리 상태
 export type QueueDecision = "pending" | "approved" | "held" | "applied"
 
+// 개별 주문 이벤트 (더미 주문 데이터 스트림)
+export type OrderEvent = {
+  id: string
+  ts: number
+  simDay: number // 시뮬레이션 상의 발생 일자
+  skuId: string
+  qty: number // 주문 수량 (EA)
+  picks: number // 발생한 피킹 트랜잭션(주문 건수)
+}
+
 // 변경 이력 로그 엔트리
 export type HistoryEntry = {
   id: string
   ts: number
+  simDay: number
   skuId: string
   partName: string
   kind: "order" | "approve" | "hold" | "apply" | "rule"
   message: string
+  beforeDepth?: number
+  afterDepth?: number
+  approver?: string
+  reason?: string
 }
 
-// 주입된 주문이 SKU에 남기는 누적 델타
-type OrderDelta = {
-  outflow: number // dailyOutflow 증가분
-  freq: number // dailyPickFreq 증가분
-  invConsumed: number // 재고 소모분
-}
+const APPROVER = "관리자 (Kim)"
+const TICK_MS = 1600 // 자동 시뮬레이션 1일 진행 간격
 
 type ReslottingContextValue = {
   rows: SkuRow[] // 라이브 행 (주문 델타 반영)
   thresholds: SlottingThresholds
   setThresholds: (t: SlottingThresholds) => void
+  windowDays: number
+  setWindowDays: (n: number) => void
   candidates: ReslottingCandidate[]
   decisions: Record<string, QueueDecision>
   approve: (skuId: string) => void
   hold: (skuId: string) => void
   apply: (skuId: string) => void
-  injectOrder: (skuId: string, qty: number) => void
+  injectOrder: (skuId: string, qty: number, orders?: number) => void
   injectRandomBatch: () => void
+  // P2 시뮬레이션 제어
+  simDay: number
+  playing: boolean
+  togglePlay: () => void
+  advanceDay: () => void
+  resetSim: () => void
+  orderEvents: OrderEvent[]
   history: HistoryEntry[]
   pendingCount: number
 }
 
 const ReslottingContext = createContext<ReslottingContextValue | null>(null)
 
-let historyCounter = 0
+let idCounter = 0
 function nextId() {
-  historyCounter += 1
-  return `h${historyCounter}-${Date.now()}`
+  idCounter += 1
+  return `e${idCounter}-${Date.now()}`
 }
 
 export function ReslottingProvider({ children }: { children: ReactNode }) {
   const [thresholds, setThresholdsState] = useState<SlottingThresholds>(DEFAULT_THRESHOLDS)
-  const [deltas, setDeltas] = useState<Record<string, OrderDelta>>({})
+  const [windowDays, setWindowDaysState] = useState(7)
+  const [orderEvents, setOrderEvents] = useState<OrderEvent[]>([])
   const [decisions, setDecisions] = useState<Record<string, QueueDecision>>({})
   const [appliedDepths, setAppliedDepths] = useState<Record<string, number>>({})
   const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [simDay, setSimDay] = useState(0)
+  const [playing, setPlaying] = useState(false)
+
+  // simDay의 동기적 소스 (이벤트 태깅용)
+  const simDayRef = useRef(0)
 
   const log = useCallback((entry: Omit<HistoryEntry, "id" | "ts">) => {
-    setHistory((prev) => [{ id: nextId(), ts: Date.now(), ...entry }, ...prev].slice(0, 200))
+    setHistory((prev) => [{ id: nextId(), ts: Date.now(), ...entry }, ...prev].slice(0, 300))
   }, [])
 
-  // 라이브 행: 원본 + 주문 델타 + 적용된 depth 이동
+  // 베이스라인(주문 델타 없는 원본) — 등급 변동 판정용
+  const baselineById = useMemo(
+    () => new Map(SKU_ROWS.map((r) => [r.skuId, r])),
+    [],
+  )
+
+  // 라이브 행: 원본 + Rolling window 주문 델타 + 적용된 depth 이동
   const rows = useMemo<SkuRow[]>(() => {
+    const windowStart = simDay - windowDays
+    const deltaMap = new Map<string, { outflow: number; picks: number; invConsumed: number }>()
+    for (const ev of orderEvents) {
+      const cur = deltaMap.get(ev.skuId) ?? { outflow: 0, picks: 0, invConsumed: 0 }
+      cur.invConsumed += ev.qty // 재고 소모는 영구 반영
+      // Rolling window: 윈도우 안의 주문만 현재 출고율/빈도에 반영 (오래된 스파이크는 소멸)
+      if (ev.simDay > windowStart) {
+        cur.outflow += ev.qty
+        cur.picks += ev.picks
+      }
+      deltaMap.set(ev.skuId, cur)
+    }
+
     return SKU_ROWS.map((row) => {
-      const d = deltas[row.skuId]
+      const d = deltaMap.get(row.skuId)
       const appliedDepth = appliedDepths[row.skuId]
       if (!d && appliedDepth === undefined) return row
       return {
         ...row,
         dailyOutflow: row.dailyOutflow + (d?.outflow ?? 0),
-        dailyPickFreq: row.dailyPickFreq + (d?.freq ?? 0),
+        dailyPickFreq: row.dailyPickFreq + (d?.picks ?? 0),
         inventory: Math.max(0, row.inventory - (d?.invConsumed ?? 0)),
         location:
           appliedDepth !== undefined
@@ -88,11 +135,11 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
             : row.location,
       }
     })
-  }, [deltas, appliedDepths])
+  }, [orderEvents, appliedDepths, simDay, windowDays])
 
   const candidates = useMemo(
-    () => findReslottingCandidates(rows, thresholds),
-    [rows, thresholds],
+    () => findReslottingCandidates(rows, thresholds, baselineById),
+    [rows, thresholds, baselineById],
   )
 
   const setThresholds = useCallback(
@@ -102,7 +149,22 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
         skuId: "—",
         partName: "슬롯 룰",
         kind: "rule",
-        message: `임계값 조정: 물량 A≥${t.volumeA}/B≥${t.volumeB}, 빈도 A≥${t.freqA}/B≥${t.freqB}`,
+        simDay: simDayRef.current,
+        message: `임계값 조정: 물량 A≥${t.volumeA}/B≥${t.volumeB}, 빈도 A≥${t.freqA}/B≥${t.freqB}, 최소 Depth차 ${t.minDepthGap}`,
+      })
+    },
+    [log],
+  )
+
+  const setWindowDays = useCallback(
+    (n: number) => {
+      setWindowDaysState(n)
+      log({
+        skuId: "—",
+        partName: "슬롯 룰",
+        kind: "rule",
+        simDay: simDayRef.current,
+        message: `Rolling window ${n}일로 조정`,
       })
     },
     [log],
@@ -111,19 +173,35 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
   const approve = useCallback(
     (skuId: string) => {
       setDecisions((prev) => ({ ...prev, [skuId]: "approved" }))
-      const row = rows.find((r) => r.skuId === skuId)
-      if (row) log({ skuId, partName: row.partName, kind: "approve", message: "리슬롯팅 승인됨" })
+      const row = SKU_ROWS.find((r) => r.skuId === skuId)
+      if (row)
+        log({
+          skuId,
+          partName: row.partName,
+          kind: "approve",
+          simDay: simDayRef.current,
+          approver: APPROVER,
+          message: "리슬롯팅 승인됨",
+        })
     },
-    [rows, log],
+    [log],
   )
 
   const hold = useCallback(
     (skuId: string) => {
       setDecisions((prev) => ({ ...prev, [skuId]: "held" }))
-      const row = rows.find((r) => r.skuId === skuId)
-      if (row) log({ skuId, partName: row.partName, kind: "hold", message: "리슬롯팅 보류됨" })
+      const row = SKU_ROWS.find((r) => r.skuId === skuId)
+      if (row)
+        log({
+          skuId,
+          partName: row.partName,
+          kind: "hold",
+          simDay: simDayRef.current,
+          approver: APPROVER,
+          message: "리슬롯팅 보류됨",
+        })
     },
-    [rows, log],
+    [log],
   )
 
   const apply = useCallback(
@@ -136,6 +214,11 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
         skuId,
         partName: cand.row.partName,
         kind: "apply",
+        simDay: simDayRef.current,
+        beforeDepth: cand.currentDepth,
+        afterDepth: cand.targetDepth,
+        approver: APPROVER,
+        reason: cand.reason,
         message: `${cand.currentDepth}-Deep → ${cand.targetDepth}-Deep 이동 실행`,
       })
     },
@@ -143,38 +226,63 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
   )
 
   const injectOrder = useCallback(
-    (skuId: string, qty: number) => {
+    (skuId: string, qty: number, orders = 1) => {
       const row = SKU_ROWS.find((r) => r.skuId === skuId)
       if (!row) return
-      setDeltas((prev) => {
-        const cur = prev[skuId] ?? { outflow: 0, freq: 0, invConsumed: 0 }
-        return {
-          ...prev,
-          [skuId]: {
-            outflow: cur.outflow + qty,
-            freq: cur.freq + 1, // 주문 1건 = 피킹 1회
-            invConsumed: cur.invConsumed + qty,
-          },
-        }
-      })
+      const day = simDayRef.current
+      setOrderEvents((prev) => [
+        ...prev,
+        { id: nextId(), ts: Date.now(), simDay: day, skuId, qty, picks: orders },
+      ])
       log({
         skuId,
         partName: row.partName,
         kind: "order",
-        message: `주문 유입 +${qty} EA (피킹 +1)`,
+        simDay: day,
+        message: `주문 유입 +${qty} EA · 피킹 +${orders}`,
       })
     },
     [log],
   )
 
-  // 데모용: 무작위 SKU 몇 건에 주문 배치 주입 (등급 변동 유도)
+  // 데모용: 무작위 SKU 몇 건에 주문 배치 주입 (빈도/물량 갱신 → 등급 변동 유도)
   const injectRandomBatch = useCallback(() => {
     const picks = [...SKU_ROWS].sort(() => Math.random() - 0.5).slice(0, 3)
     picks.forEach((row) => {
-      const qty = 20 + Math.floor(Math.random() * 90)
-      injectOrder(row.skuId, qty)
+      const orders = 2 + Math.floor(Math.random() * 4) // 2~5건
+      const qty = orders * (10 + Math.floor(Math.random() * 25))
+      injectOrder(row.skuId, qty, orders)
     })
   }, [injectOrder])
+
+  const advanceDay = useCallback(() => {
+    simDayRef.current += 1
+    setSimDay(simDayRef.current)
+  }, [])
+
+  const resetSim = useCallback(() => {
+    setPlaying(false)
+    setOrderEvents([])
+    setDecisions({})
+    setAppliedDepths({})
+    setHistory([])
+    simDayRef.current = 0
+    setSimDay(0)
+  }, [])
+
+  const togglePlay = useCallback(() => setPlaying((p) => !p), [])
+
+  // 자동 시뮬레이션: 매 틱마다 하루 진행 + 주문 배치 유입
+  const tickRef = useRef<() => void>(() => {})
+  tickRef.current = () => {
+    advanceDay()
+    injectRandomBatch()
+  }
+  useEffect(() => {
+    if (!playing) return
+    const id = setInterval(() => tickRef.current(), TICK_MS)
+    return () => clearInterval(id)
+  }, [playing])
 
   const pendingCount = useMemo(
     () =>
@@ -188,6 +296,8 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
     rows,
     thresholds,
     setThresholds,
+    windowDays,
+    setWindowDays,
     candidates,
     decisions,
     approve,
@@ -195,6 +305,12 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
     apply,
     injectOrder,
     injectRandomBatch,
+    simDay,
+    playing,
+    togglePlay,
+    advanceDay,
+    resetSim,
+    orderEvents,
     history,
     pendingCount,
   }
