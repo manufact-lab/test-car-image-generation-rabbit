@@ -1,6 +1,6 @@
 "use client"
 
-import { useReslotting, type HistoryEntry } from "@/components/reslotting-context"
+import { useReslotting } from "@/components/reslotting-context"
 import { DEFAULT_THRESHOLDS, type SlottingThresholds } from "@/lib/reslotting"
 
 const FIELDS: {
@@ -14,10 +14,17 @@ const FIELDS: {
   { key: "volumeB", label: "물량 B 임계값", hint: "EA/day 이상이면 물량 B", min: 20, max: 120 },
   { key: "freqA", label: "빈도 A 임계값", hint: "picks/day 이상이면 빈도 A", min: 20, max: 60 },
   { key: "freqB", label: "빈도 B 임계값", hint: "picks/day 이상이면 빈도 B", min: 5, max: 40 },
+  {
+    key: "minDepthGap",
+    label: "최소 Depth 이동 폭",
+    hint: "현재-권장 차이가 이 값 이상일 때만 리슬롯팅 (과잉 재배치 억제)",
+    min: 1,
+    max: 3,
+  },
 ]
 
 export function RuleSettings() {
-  const { thresholds, setThresholds, history } = useReslotting()
+  const { thresholds, setThresholds } = useReslotting()
 
   const update = (key: keyof SlottingThresholds, value: number) => {
     setThresholds({ ...thresholds, [key]: value })
@@ -66,60 +73,8 @@ export function RuleSettings() {
           ))}
         </div>
       </section>
-
-      <ChangeHistory history={history} />
     </div>
   )
 }
 
-const KIND_STYLE: Record<HistoryEntry["kind"], string> = {
-  order: "bg-chart-3/15 text-warning",
-  approve: "bg-primary/15 text-primary",
-  hold: "bg-warning/15 text-warning",
-  apply: "bg-success/15 text-success",
-  rule: "bg-muted text-muted-foreground",
-}
 
-const KIND_LABEL: Record<HistoryEntry["kind"], string> = {
-  order: "주문",
-  approve: "승인",
-  hold: "보류",
-  apply: "실행",
-  rule: "룰",
-}
-
-function ChangeHistory({ history }: { history: HistoryEntry[] }) {
-  return (
-    <section className="rounded-xl border border-border bg-card">
-      <div className="border-b border-border px-5 py-4">
-        <h2 className="text-sm font-semibold text-foreground">변경 이력</h2>
-        <p className="mt-0.5 text-xs text-muted-foreground">주문 유입 · 승인 · 이동 · 룰 조정 로그</p>
-      </div>
-
-      {history.length === 0 ? (
-        <div className="px-5 py-10 text-center text-sm text-muted-foreground">
-          아직 기록된 변경이 없습니다.
-        </div>
-      ) : (
-        <ul className="max-h-80 divide-y divide-border overflow-y-auto">
-          {history.map((h) => (
-            <li key={h.id} className="flex items-start gap-3 px-5 py-2.5">
-              <span
-                className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${KIND_STYLE[h.kind]}`}
-              >
-                {KIND_LABEL[h.kind]}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-foreground">{h.message}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {h.skuId !== "—" ? `${h.skuId} · ` : ""}
-                  {new Date(h.ts).toLocaleTimeString("ko-KR")}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  )
-}

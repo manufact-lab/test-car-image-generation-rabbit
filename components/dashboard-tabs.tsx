@@ -7,14 +7,17 @@ import { AiOptimizer } from "@/components/ai-optimizer"
 import { ReslottingQueue } from "@/components/reslotting-queue"
 import { RuleSettings } from "@/components/rule-settings"
 import { OrderInjector } from "@/components/order-injector"
+import { OrderStream } from "@/components/order-stream"
+import { ChangeHistoryLog } from "@/components/change-history-log"
 import { SlottingAlert } from "@/components/slotting-alert"
 import { useReslotting } from "@/components/reslotting-context"
 
-type TabKey = "dashboard" | "queue"
+type TabKey = "dashboard" | "queue" | "history"
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "dashboard", label: "대시보드" },
   { key: "queue", label: "리슬롯팅 큐" },
+  { key: "history", label: "변경 이력" },
 ]
 
 export function DashboardTabs() {
@@ -63,7 +66,7 @@ export function DashboardTabs() {
         <OrderInjector />
       </div>
 
-      {tab === "dashboard" ? (
+      {tab === "dashboard" && (
         <div>
           <OverviewCards />
           <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
@@ -75,14 +78,23 @@ export function DashboardTabs() {
             </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {tab === "queue" && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
           <div className="min-w-0">
             <ReslottingQueue />
           </div>
-          <div className="min-w-0">
+          <div className="flex min-w-0 flex-col gap-6">
             <RuleSettings />
+            <OrderStream />
           </div>
+        </div>
+      )}
+
+      {tab === "history" && (
+        <div className="min-w-0">
+          <ChangeHistoryLog />
         </div>
       )}
 

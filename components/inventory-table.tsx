@@ -49,7 +49,7 @@ function DosCell({ dos }: { dos: number }) {
 export function InventoryTable() {
   const { rows: liveRows, thresholds, candidates } = useReslotting()
   const rows = [...liveRows].sort((a, b) => daysOfSupply(a) - daysOfSupply(b))
-  const candidateIds = new Set(candidates.map((c) => c.row.skuId))
+  const candidateById = new Map(candidates.map((c) => [c.row.skuId, c]))
   const [selected, setSelected] = useState<SkuRow | null>(null)
 
   return (
@@ -96,7 +96,7 @@ export function InventoryTable() {
             {rows.map((row) => {
               const dos = daysOfSupply(row)
               const grade = classifySlot(row, thresholds)
-              const needsReslot = candidateIds.has(row.skuId)
+              const cand = candidateById.get(row.skuId)
               return (
                 <tr
                   key={row.skuId}
@@ -131,10 +131,18 @@ export function InventoryTable() {
                   <td className="px-5 py-4">
                     <div className="flex flex-col items-start gap-1.5">
                       <CrossAbcBadge grade={grade} />
-                      {needsReslot && (
-                        <span className="inline-flex items-center gap-1 rounded-md border border-warning/40 bg-warning/15 px-1.5 py-0.5 text-xs font-medium text-warning">
+                      {cand && (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium",
+                            cand.gradeChanged
+                              ? "border-primary/40 bg-primary/15 text-primary"
+                              : "border-warning/40 bg-warning/15 text-warning",
+                          )}
+                          title={cand.reason}
+                        >
                           <Shuffle className="size-3" aria-hidden="true" />
-                          리슬롯팅 권장
+                          {cand.gradeChanged ? "주문 유입 → 리슬롯팅" : "리슬롯팅 권장"}
                         </span>
                       )}
                     </div>

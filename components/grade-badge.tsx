@@ -31,14 +31,6 @@ export function CrossAbcBadge({ grade }: { grade: GradeResult }) {
       >
         빈도 {grade.freq}
       </span>
-      {grade.isMismatch && (
-        <span
-          className="inline-flex items-center rounded border border-destructive/40 bg-destructive/15 px-1.5 py-0.5 text-xs font-medium text-destructive"
-          title="물량축과 빈도축이 크게 어긋남"
-        >
-          괴리
-        </span>
-      )}
     </div>
   )
 }

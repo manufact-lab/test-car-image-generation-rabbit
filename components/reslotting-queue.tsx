@@ -27,7 +27,7 @@ export function ReslottingQueue() {
         <div>
           <h2 className="text-sm font-semibold text-foreground">리슬롯팅 큐</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Cross-ABC 재평가로 감지된 슬롯 이동 후보 · 비용편익 우선순위순
+            주문 유입에 따른 물량·빈도 변동으로 재평가된 슬롯 이동 후보 · 변동 건 우선, 비용편익순
           </p>
         </div>
         <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium tabular-nums text-secondary-foreground">
@@ -70,7 +70,7 @@ function QueueItem({
   onHold: () => void
   onApply: () => void
 }) {
-  const { row, grade, currentDepth, targetDepth, benefit, direction } = cand
+  const { row, grade, currentDepth, targetDepth, benefit, direction, reason, gradeChanged } = cand
   const applied = decision === "applied"
 
   return (
@@ -82,8 +82,18 @@ function QueueItem({
             <SlotGradeBadge grade={grade.finalGrade} />
           </div>
           <p className="mt-0.5 truncate text-sm text-muted-foreground">{row.partName}</p>
-          <div className="mt-2">
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <CrossAbcBadge grade={grade} />
+            <span
+              className={`inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium ${
+                gradeChanged
+                  ? "border-primary/40 bg-primary/15 text-primary"
+                  : "border-border bg-muted text-muted-foreground"
+              }`}
+              title="리슬롯팅 사유"
+            >
+              {reason}
+            </span>
           </div>
         </div>
 
