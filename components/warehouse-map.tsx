@@ -19,7 +19,13 @@ function Stat({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function WarehouseMap({ location }: { location: WarehouseLocation }) {
+export function WarehouseMap({
+  location,
+  targetDepth,
+}: {
+  location: WarehouseLocation
+  targetDepth?: number
+}) {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -115,19 +121,30 @@ export function WarehouseMap({ location }: { location: WarehouseLocation }) {
             {Array.from({ length: 5 }, (_, i) => {
               const depth = i + 1
               const isCurrent = depth === location.depth
+              const isTarget = targetDepth !== undefined && depth === targetDepth
+              const isBoth = isCurrent && isTarget
               return (
                 <div key={depth} className="flex flex-1 flex-col items-center gap-1">
                   <div
                     className={cn(
                       "h-8 w-full rounded-[4px] border",
-                      isCurrent
-                        ? "border-primary bg-primary/25"
-                        : "border-border bg-secondary/40",
+                      isBoth
+                        ? "border-success bg-success/25"
+                        : isCurrent
+                          ? "border-primary bg-primary/25"
+                          : isTarget
+                            ? "border-warning border-dashed bg-warning/15"
+                            : "border-border bg-secondary/40",
                     )}
                   >
                     {isCurrent && (
                       <div className="flex h-full items-center justify-center text-[10px] font-bold text-primary">
-                        HERE
+                        현재
+                      </div>
+                    )}
+                    {isTarget && !isCurrent && (
+                      <div className="flex h-full items-center justify-center text-[10px] font-bold text-warning">
+                        권장
                       </div>
                     )}
                   </div>
@@ -139,8 +156,15 @@ export function WarehouseMap({ location }: { location: WarehouseLocation }) {
             })}
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Aisle mouth is D1 (fastest to pick). Higher depth stores more pallets
-            but requires shuttle shuffles to retrieve.
+            D1이 레인 입구(피킹 최속)입니다. 깊을수록 팔레트 밀도는 높지만 셔틀 셔플이 필요합니다.
+            {targetDepth !== undefined && targetDepth !== location.depth && (
+              <>
+                {" "}
+                <span className="text-warning">
+                  권장 위치(D{targetDepth})로 이동 시 피킹 효율이 개선됩니다.
+                </span>
+              </>
+            )}
           </p>
         </div>
       </div>

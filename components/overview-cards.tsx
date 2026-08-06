@@ -1,9 +1,8 @@
-import { Boxes, Package, Timer } from "lucide-react"
-import {
-  SKU_ROWS,
-  WAREHOUSE,
-  daysOfSupply,
-} from "@/lib/inventory-data"
+"use client"
+
+import { Boxes, Package, Timer, Shuffle } from "lucide-react"
+import { WAREHOUSE, daysOfSupply } from "@/lib/inventory-data"
+import { useReslotting } from "@/components/reslotting-context"
 
 function CardShell({
   title,
@@ -28,19 +27,21 @@ function CardShell({
 }
 
 export function OverviewCards() {
+  const { rows, candidates, pendingCount } = useReslotting()
+
   const fillPct = Math.round(
     (WAREHOUSE.usedPallets / WAREHOUSE.totalPallets) * 100,
   )
 
-  const skuCount = SKU_ROWS.length
+  const skuCount = rows.length
   const avgDos =
-    SKU_ROWS.reduce((acc, r) => {
+    rows.reduce((acc, r) => {
       const d = daysOfSupply(r)
       return acc + (Number.isFinite(d) ? d : 0)
-    }, 0) / SKU_ROWS.length
+    }, 0) / rows.length
 
   return (
-    <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+    <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
       <CardShell title="전체 보관량 (Total Capacity)" icon={<Boxes className="size-4" />}>
         <div className="flex items-baseline gap-2">
           <span className="font-mono text-3xl font-semibold tabular-nums text-foreground">
@@ -94,8 +95,23 @@ export function OverviewCards() {
         <p className="mt-4 text-xs text-muted-foreground">
           목표 범위 <span className="font-medium text-foreground">7–14일</span> · 위험 구간 SKU{" "}
           <span className="font-medium text-destructive">
-            {SKU_ROWS.filter((r) => daysOfSupply(r) <= 3).length}건
+            {rows.filter((r) => daysOfSupply(r) <= 3).length}건
           </span>
+        </p>
+      </CardShell>
+
+      <CardShell title="리슬롯팅 대기 (Reslotting)" icon={<Shuffle className="size-4" />}>
+        <div className="flex items-baseline gap-2">
+          <span className="font-mono text-3xl font-semibold tabular-nums text-foreground">
+            {pendingCount}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            / {candidates.length} 후보
+          </span>
+        </div>
+        <p className="mt-4 text-xs text-muted-foreground">
+          Cross-ABC 재평가 결과 승인 대기{" "}
+          <span className="font-medium text-warning">{pendingCount}건</span> · 큐 탭에서 검토
         </p>
       </CardShell>
     </section>

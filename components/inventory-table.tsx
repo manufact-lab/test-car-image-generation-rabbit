@@ -1,15 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { AlarmClock, ChevronRight } from "lucide-react"
+import { AlarmClock, ChevronRight, Shuffle } from "lucide-react"
 import {
-  SKU_ROWS,
   daysOfSupply,
   dosTier,
   type SkuRow,
 } from "@/lib/inventory-data"
 import { StatusBadge } from "@/components/status-badge"
 import { SkuDetailView } from "@/components/sku-detail-view"
+import { CrossAbcBadge } from "@/components/grade-badge"
+import { useReslotting } from "@/components/reslotting-context"
+import { classifySlot } from "@/lib/reslotting"
 import { cn } from "@/lib/utils"
 
 function DosCell({ dos }: { dos: number }) {
@@ -45,7 +47,9 @@ function DosCell({ dos }: { dos: number }) {
 }
 
 export function InventoryTable() {
-  const rows = [...SKU_ROWS].sort((a, b) => daysOfSupply(a) - daysOfSupply(b))
+  const { rows: liveRows, thresholds, candidates } = useReslotting()
+  const rows = [...liveRows].sort((a, b) => daysOfSupply(a) - daysOfSupply(b))
+  const candidateById = new Map(candidates.map((c) => [c.row.skuId, c]))
   const [selected, setSelected] = useState<SkuRow | null>(null)
 
   return (
@@ -73,11 +77,12 @@ export function InventoryTable() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[960px] border-collapse text-left">
+        <table className="w-full min-w-[1100px] border-collapse text-left">
           <thead>
             <tr className="whitespace-nowrap text-xs uppercase tracking-wide text-muted-foreground">
               <th className="px-5 py-3 font-medium">SKU ID</th>
               <th className="px-5 py-3 font-medium">적용 차종</th>
+              <th className="px-5 py-3 font-medium">Cross-ABC 등급</th>
               <th className="px-5 py-3 text-right font-medium">현재 보관량</th>
               <th className="px-5 py-3 text-right font-medium">일일 소요량</th>
               <th className="px-5 py-3 text-right font-medium">재고 일수</th>
@@ -90,6 +95,8 @@ export function InventoryTable() {
           <tbody>
             {rows.map((row) => {
               const dos = daysOfSupply(row)
+              const grade = classifySlot(row, thresholds)
+              const cand = candidateById.get(row.skuId)
               return (
                 <tr
                   key={row.skuId}
@@ -120,6 +127,25 @@ export function InventoryTable() {
                     <span className="inline-flex items-center rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 font-mono text-sm font-medium text-primary">
                       {row.modelName}
                     </span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex flex-col items-start gap-1.5">
+                      <CrossAbcBadge grade={grade} />
+                      {cand && (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium",
+                            cand.gradeChanged
+                              ? "border-primary/40 bg-primary/15 text-primary"
+                              : "border-warning/40 bg-warning/15 text-warning",
+                          )}
+                          title={cand.reason}
+                        >
+                          <Shuffle className="size-3" aria-hidden="true" />
+                          {cand.gradeChanged ? "주문 유입 → 리슬롯팅" : "리슬롯팅 권장"}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-5 py-4 text-right font-mono text-sm tabular-nums text-foreground">
                     {row.inventory.toLocaleString()}
