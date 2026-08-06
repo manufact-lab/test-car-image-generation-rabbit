@@ -6,14 +6,15 @@ import type { SkuRow } from "@/lib/inventory-data"
 import {
   daysOfSupply,
   dosTier,
-  abcClass,
-  recommendedDepth,
   formatShipLine,
 } from "@/lib/inventory-data"
 import { StatusBadge } from "@/components/status-badge"
 import { Chassis3D } from "@/components/chassis-3d"
 import { WarehouseMap } from "@/components/warehouse-map"
 import { DepthEfficiencyChart } from "@/components/depth-efficiency-chart"
+import { CrossAbcBadge, SlotGradeBadge } from "@/components/grade-badge"
+import { useSlotGrade } from "@/components/reslotting-context"
+import { GRADE_DEPTH_LABEL } from "@/lib/reslotting"
 
 function MetaItem({
   icon: Icon,
@@ -82,7 +83,10 @@ export function SkuDetailView({
 
   const dos = daysOfSupply(row)
   const tier = dosTier(dos)
-  const cls = abcClass(row)
+  const grade = useSlotGrade(row)
+  const currentDepth = row.location.depth
+  const targetDepth = grade.targetDepth
+  const needsMove = currentDepth !== targetDepth
 
   return (
     <div
@@ -104,9 +108,10 @@ export function SkuDetailView({
                 {row.skuId}
               </span>
               <StatusBadge tier={tier} />
-              <span className="rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-xs font-medium text-primary">
-                Class {cls}
-              </span>
+              <SlotGradeBadge grade={grade.finalGrade} />
+            </div>
+            <div className="mt-2">
+              <CrossAbcBadge grade={grade} />
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
               <span className="font-mono font-medium text-foreground">
@@ -213,7 +218,7 @@ export function SkuDetailView({
               title="디지털 창고 맵"
               desc="정확한 Rack · Level · Aisle · Depth 위치 시각화"
             />
-            <WarehouseMap location={row.location} />
+            <WarehouseMap location={row.location} targetDepth={targetDepth} />
           </section>
 
           {/* SECTION 3: efficiency vs depth */}
@@ -224,12 +229,52 @@ export function SkuDetailView({
               desc="해당 존의 셔틀 깊이별 피킹 효율과 적재 밀도 트레이드오프"
             />
             <DepthEfficiencyChart row={row} />
-            <div className="mt-3 rounded-lg border border-border bg-secondary/30 p-3 text-xs text-muted-foreground">
-              현재 권장 셔틀 적재 깊이:{" "}
-              <span className="font-mono font-semibold text-primary">
-                {recommendedDepth(cls)}
-              </span>{" "}
-              (Class {cls} 기준)
+
+            <div className="mt-3 rounded-lg border border-border bg-secondary/30 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-xs text-muted-foreground">
+                  Cross-ABC 권장 셔틀 적재 깊이{" "}
+                  <span className="font-mono font-semibold text-primary">
+                    {GRADE_DEPTH_LABEL[grade.finalGrade]}
+                  </span>
+                </div>
+                {needsMove ? (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="rounded-md border border-border bg-secondary px-2 py-1 font-mono text-xs text-secondary-foreground">
+                      현재 {currentDepth}-Deep
+                    </span>
+                    <span
+                      aria-hidden
+                      className={currentDepth > targetDepth ? "text-primary" : "text-warning"}
+                    >
+                      →
+                    </span>
+                    <span className="rounded-md border border-primary/40 bg-primary/15 px-2 py-1 font-mono text-xs text-primary">
+                      권장 {targetDepth}-Deep
+                    </span>
+                  </div>
+                ) : (
+                  <span className="rounded-md border border-success/40 bg-success/15 px-2 py-1 text-xs font-medium text-success">
+                    최적 배치됨
+                  </span>
+                )}
+              </div>
+
+              {grade.appliedRules.length > 0 && (
+                <div className="mt-3 space-y-1.5 border-t border-border pt-3">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    적용된 예외 룰
+                  </div>
+                  {grade.appliedRules.map((r) => (
+                    <div key={r.id} className="flex items-start gap-2 text-xs">
+                      <span className="mt-0.5 shrink-0 rounded bg-primary/15 px-1.5 py-0.5 font-medium text-primary">
+                        {r.label}
+                      </span>
+                      <span className="text-muted-foreground">{r.effect}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </section>
         </div>
