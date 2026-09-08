@@ -1,10 +1,35 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import type { WarehouseLocation } from "@/lib/inventory-data"
+import {
+  type WarehouseLocation,
+  LANE_ACCESS_LABEL,
+  PICK_MODE_LABEL,
+  availablePickModes,
+  effectiveDepth,
+} from "@/lib/inventory-data"
 
 const RACK_COLS = 8
 const LEVELS = 4 // rendered top (4) to bottom (1)
+const ALL_PICK_MODES = ["flow-through", "dual-pick", "lifo"] as const
+
+// 레인 끝단 표시: 통로 입구 또는 벽(단면 레인의 막힌 면)
+function LaneEnd({ label, wall }: { label: string; wall?: boolean }) {
+  return (
+    <div className="flex w-6 shrink-0 flex-col items-center gap-1">
+      <div
+        className={cn(
+          "flex h-8 w-full items-center justify-center rounded-[4px] border text-[9px] font-bold",
+          wall
+            ? "border-muted-foreground/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--color-muted-foreground)_3px,var(--color-muted-foreground)_4px)] text-muted-foreground"
+            : "border-dashed border-primary/50 bg-primary/5 text-primary",
+        )}
+        aria-hidden
+      />
+      <span className="text-[9px] text-muted-foreground">{label}</span>
+    </div>
+  )
+}
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -26,13 +51,21 @@ export function WarehouseMap({
   location: WarehouseLocation
   targetDepth?: number
 }) {
+  const oneSided = location.laneAccess === "one-sided"
+  const allowedModes = availablePickModes(location.laneAccess)
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <Stat label="Zone" value={location.zone} />
         <Stat label="Aisle" value={location.aisle} />
         <Stat label="Rack" value={`R-${String(location.rack).padStart(2, "0")}`} />
         <Stat label="Level" value={`L${location.level}`} />
+        <Stat label="접근유형" value={LANE_ACCESS_LABEL[location.laneAccess]} />
+        <Stat
+          label="유효깊이"
+          value={`${effectiveDepth(location)} / ${location.laneLength}`}
+        />
       </div>
 
       {/* Rack elevation grid: rows = levels, cols = rack bays */}
@@ -114,11 +147,25 @@ export function WarehouseMap({
         </div>
 
         <div className="mt-3 border-t border-border pt-3">
-          <div className="mb-2 text-xs text-muted-foreground">
-            4-Way Shuttle Lane · Depth Position
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>4-Way Shuttle Lane · Depth Position</span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium",
+                oneSided
+                  ? "border-warning/50 bg-warning/15 text-warning"
+                  : "border-primary/40 bg-primary/15 text-primary",
+              )}
+            >
+              {LANE_ACCESS_LABEL[location.laneAccess]} 접근
+            </span>
           </div>
-          <div className="flex items-center gap-1.5">
-            {Array.from({ length: 5 }, (_, i) => {
+
+          <div className="flex items-stretch gap-1.5">
+            {/* 근거리 통로 입구 (양쪽 공통) */}
+            <LaneEnd label="입구" />
+
+            {Array.from({ length: location.laneLength }, (_, i) => {
               const depth = i + 1
               const isCurrent = depth === location.depth
               const isTarget = targetDepth !== undefined && depth === targetDepth
@@ -127,7 +174,7 @@ export function WarehouseMap({
                 <div key={depth} className="flex flex-1 flex-col items-center gap-1">
                   <div
                     className={cn(
-                      "h-8 w-full rounded-[4px] border",
+                      "flex h-8 w-full items-center justify-center rounded-[4px] border",
                       isBoth
                         ? "border-success bg-success/25"
                         : isCurrent
@@ -138,25 +185,34 @@ export function WarehouseMap({
                     )}
                   >
                     {isCurrent && (
-                      <div className="flex h-full items-center justify-center text-[10px] font-bold text-primary">
-                        현재
-                      </div>
+                      <span className="text-[10px] font-bold text-primary">현재</span>
                     )}
                     {isTarget && !isCurrent && (
-                      <div className="flex h-full items-center justify-center text-[10px] font-bold text-warning">
-                        권장
-                      </div>
+                      <span className="text-[10px] font-bold text-warning">권장</span>
                     )}
                   </div>
-                  <span className="font-mono text-[10px] text-muted-foreground">
-                    D{depth}
-                  </span>
+                  <span className="font-mono text-[10px] text-muted-foreground">D{depth}</span>
                 </div>
               )
             })}
+
+            {/* 원거리 끝: 단면=벽(막힘), 양면=반대편 통로 입구 */}
+            {oneSided ? <LaneEnd label="벽" wall /> : <LaneEnd label="입구" />}
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            D1이 레인 입구(피킹 최속)입니다. 깊을수록 팔레트 밀도는 높지만 셔틀 셔플이 필요합니다.
+
+          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+            {oneSided ? (
+              <>
+                단면 레인: 한쪽 통로에서만 접근 가능하며 반대쪽은 벽으로 막혀 있습니다. 구조상 후입선출
+                <span className="text-warning"> (LIFO 고정)</span>이라 유효 깊이 = 위치 그대로
+                <span className="font-mono text-foreground"> D{effectiveDepth(location)}</span>.
+              </>
+            ) : (
+              <>
+                양면 레인: 양쪽 통로에서 접근하므로 가까운 쪽 기준 유효 깊이 = min(위치, 레인길이+1−위치) ={" "}
+                <span className="font-mono text-foreground">D{effectiveDepth(location)}</span>.
+              </>
+            )}
             {targetDepth !== undefined && targetDepth !== location.depth && (
               <>
                 {" "}
@@ -166,6 +222,30 @@ export function WarehouseMap({
               </>
             )}
           </p>
+
+          {/* 운영 모드: 단면은 flow-through 비활성 */}
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              운영 모드
+            </span>
+            {ALL_PICK_MODES.map((mode) => {
+              const enabled = allowedModes.includes(mode)
+              return (
+                <span
+                  key={mode}
+                  className={cn(
+                    "rounded border px-1.5 py-0.5 text-[10px] font-medium",
+                    enabled
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-border bg-secondary/30 text-muted-foreground/50 line-through",
+                  )}
+                  title={enabled ? "선택 가능" : "이 레인 구조에서는 사용 불가"}
+                >
+                  {PICK_MODE_LABEL[mode]}
+                </span>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>

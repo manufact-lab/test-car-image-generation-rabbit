@@ -1,13 +1,15 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, type ReactNode } from "react"
 import { X, MapPin, Box, Gauge, Factory } from "lucide-react"
 import type { SkuRow } from "@/lib/inventory-data"
 import {
   daysOfSupply,
   dosTier,
   formatShipLine,
+  checkOneSidedFit,
 } from "@/lib/inventory-data"
+import { AlertTriangle, ShieldCheck } from "lucide-react"
 import { StatusBadge } from "@/components/status-badge"
 import { Chassis3D } from "@/components/chassis-3d"
 import { WarehouseMap } from "@/components/warehouse-map"
@@ -38,6 +40,21 @@ function MetaItem({
         </div>
       </div>
     </div>
+  )
+}
+
+function ConditionChip({ ok, children }: { ok: boolean; children: ReactNode }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium ${
+        ok
+          ? "border-success/40 bg-success/15 text-success"
+          : "border-border bg-secondary/50 text-muted-foreground"
+      }`}
+    >
+      <span aria-hidden>{ok ? "✓" : "✕"}</span>
+      {children}
+    </span>
   )
 }
 
@@ -92,6 +109,8 @@ export function SkuDetailView({
   // 이동 추천은 Cross-ABC 룰 엔진 결과에서만 파생한다. 깊이 조정(①) 비용 판정을 함께 본다.
   const depthOption = computeMoveOptions(row, grade, moveParams)[0]
   const costRejected = needsMove && depthOption.verdict === "reject"
+  // 단면 레인 배치 적합성 (FIFO 위험 판정)
+  const fit = checkOneSidedFit(row, moveParams.palletCapacity)
 
   return (
     <div
@@ -223,6 +242,48 @@ export function SkuDetailView({
               title="디지털 창고 맵"
               desc="정확한 Rack · Level · Aisle · Depth 위치 시각화"
             />
+
+            {fit.applicable && !fit.ok && (
+              <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-destructive">
+                      FIFO 위험 · 구조적 LIFO
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-foreground">
+                      이 SKU는 단면 레인에 배치되어 있어 구조상 후입선출(LIFO)로만 운영됩니다. FIFO
+                      관리 대상이면서 1회 입고 로트({row.incomingLotSize.toLocaleString()} EA)가 레인
+                      용량({fit.laneCapacity.toLocaleString()} EA)보다 작아 로트 혼입 시 선입 재고가
+                      뒤에 갇힙니다.
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+                      <ConditionChip ok={fit.lotCoversLane}>
+                        ① 로트 ≥ 레인용량
+                      </ConditionChip>
+                      <ConditionChip ok={fit.nonFifo}>② 비FIFO 품목</ConditionChip>
+                    </div>
+                    <p className="mt-2.5 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary">
+                      대안: 양면(two-sided) 레인으로 이동 → flow-through(FIFO 관통) 운영으로 선입선출
+                      보장
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {fit.applicable && fit.ok && (
+              <div className="mb-4 flex items-start gap-2.5 rounded-lg border border-success/40 bg-success/10 p-3">
+                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+                <p className="text-xs leading-relaxed text-foreground">
+                  <span className="font-semibold text-success">단면 레인 배치 적합.</span>{" "}
+                  {fit.lotCoversLane
+                    ? `1회 입고 로트(${row.incomingLotSize.toLocaleString()} EA)가 레인 용량(${fit.laneCapacity.toLocaleString()} EA) 이상이라 단일 로트가 레인을 통째로 사용합니다 (조건 ①).`
+                    : "FIFO 관리 불요 품목이라 구조적 LIFO에도 문제가 없습니다 (조건 ②)."}
+                </p>
+              </div>
+            )}
+
             <WarehouseMap location={row.location} targetDepth={targetDepth} />
           </section>
 
