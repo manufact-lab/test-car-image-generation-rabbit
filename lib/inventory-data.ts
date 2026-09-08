@@ -8,12 +8,78 @@ export type ChassisZone =
   | "cabin"
   | "underbody"
 
+// 레인 접근 유형. 창고 벽에 접한 양 끝단 랙은 단면(one-sided) 접근이다.
+export type LaneAccess = "two-sided" | "one-sided"
+
+export const LANE_ACCESS_LABEL: Record<LaneAccess, string> = {
+  "two-sided": "양면",
+  "one-sided": "단면",
+}
+
 export type WarehouseLocation = {
   zone: string // e.g. "Zone B"
   aisle: string // e.g. "A-04"
   rack: number // rack column index (1-based)
   level: number // shelf level (1 = ground)
-  depth: number // 4-Way shuttle lane depth position
+  depth: number // 4-Way shuttle lane depth position (레인 내 위치, 1-based)
+  laneAccess: LaneAccess // 양면 / 단면
+  laneLength: number // 레인 전체 위치 수 (depth ≤ laneLength)
+}
+
+// 셔틀 레인 운영 모드
+export type PickMode = "flow-through" | "dual-pick" | "lifo"
+
+export const PICK_MODE_LABEL: Record<PickMode, string> = {
+  "flow-through": "Flow-through (FIFO 관통)",
+  "dual-pick": "Dual-pick (양면 피킹)",
+  lifo: "LIFO (구조적 후입선출)",
+}
+
+// 양면 레인은 flow-through·dual-pick 모두 가능. 단면 레인은 구조상 LIFO 고정.
+export function availablePickModes(access: LaneAccess): PickMode[] {
+  return access === "two-sided" ? ["flow-through", "dual-pick"] : ["lifo"]
+}
+
+// 유효 깊이 = 실제 피킹 접근 거리.
+//  · 양면: 가까운 쪽 통로에서 접근 → min(위치, 레인길이 + 1 - 위치)
+//  · 단면: 한쪽에서만 접근 → 위치 그대로
+export function effectiveDepth(loc: WarehouseLocation): number {
+  if (loc.laneAccess === "two-sided") {
+    return Math.min(loc.depth, loc.laneLength + 1 - loc.depth)
+  }
+  return loc.depth
+}
+
+// 레인 용량(EA) = 레인 길이 × 팔레트당 적재량
+export function laneCapacityEa(loc: WarehouseLocation, palletCapacity = 48): number {
+  return loc.laneLength * palletCapacity
+}
+
+// 단면 레인 배치 적합성 판정.
+// 단면 레인은 구조상 LIFO이므로 다음 중 하나를 만족하는 SKU만 배치해야 한다:
+//   ① 1회 입고 로트 크기 ≥ 레인 용량 (단일 로트가 레인을 통째로 사용 → 혼입 없음)
+//   ② FIFO 관리 불요 품목 (선입선출 제약 없음)
+// 둘 다 미충족이면 "FIFO 위험 · 구조적 LIFO".
+export type OneSidedFit = {
+  applicable: boolean // 단면 레인 여부
+  ok: boolean // 배치 적합 여부
+  lotCoversLane: boolean // 조건 ① 충족
+  nonFifo: boolean // 조건 ② 충족
+  laneCapacity: number // 레인 용량(EA)
+}
+
+export function checkOneSidedFit(row: SkuRow, palletCapacity = 48): OneSidedFit {
+  const applicable = row.location.laneAccess === "one-sided"
+  const laneCapacity = laneCapacityEa(row.location, palletCapacity)
+  const lotCoversLane = row.incomingLotSize >= laneCapacity
+  const nonFifo = !row.fifoRequired
+  return {
+    applicable,
+    ok: !applicable || lotCoversLane || nonFifo,
+    lotCoversLane,
+    nonFifo,
+    laneCapacity,
+  }
 }
 
 // Destination assembly line the part is shipped to.
@@ -83,6 +149,8 @@ export type SkuRow = {
   shipLines: ShipLine[] // destination assembly line(s)
   modelName?: string // Hyundai model name
   doorTrim: DoorTrim // 적용 부품(도어트림) 장착 위치
+  incomingLotSize: number // 1회 입고 로트 크기 (EA)
+  fifoRequired: boolean // FIFO 관리 필요 여부 (false = 비FIFO 품목)
 }
 
 export const CHASSIS_ZONE_LABELS: Record<ChassisZone, string> = {
@@ -142,7 +210,9 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim" | "partName">[] = [
     weightKg: 2.4,
     unitCost: 38,
     chassisZone: "front-axle",
-    location: { zone: "Zone A", aisle: "A-02", rack: 3, level: 2, depth: 3 },
+    location: { zone: "Zone A", aisle: "A-02", rack: 3, level: 2, depth: 3, laneAccess: "two-sided", laneLength: 5 },
+    incomingLotSize: 40,
+    fifoRequired: true,
     shipLines: [
       { plant: 2, line: 1 },
       { plant: 3, line: 2 },
@@ -158,7 +228,9 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim" | "partName">[] = [
     weightKg: 0.3,
     unitCost: 9,
     chassisZone: "engine",
-    location: { zone: "Zone A", aisle: "A-05", rack: 6, level: 1, depth: 1 },
+    location: { zone: "Zone A", aisle: "A-05", rack: 6, level: 1, depth: 1, laneAccess: "two-sided", laneLength: 5 },
+    incomingLotSize: 500,
+    fifoRequired: true,
     shipLines: [
       { plant: 1, line: 1 },
       { plant: 1, line: 3 },
@@ -175,7 +247,9 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim" | "partName">[] = [
     weightKg: 0.6,
     unitCost: 22,
     chassisZone: "engine",
-    location: { zone: "Zone C", aisle: "C-01", rack: 2, level: 4, depth: 5 },
+    location: { zone: "Zone C", aisle: "C-01", rack: 2, level: 4, depth: 5, laneAccess: "one-sided", laneLength: 5 },
+    incomingLotSize: 96,
+    fifoRequired: false,
     shipLines: [{ plant: 4, line: 2 }],
   },
   {
@@ -188,7 +262,9 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim" | "partName">[] = [
     weightKg: 0.2,
     unitCost: 12,
     chassisZone: "cabin",
-    location: { zone: "Zone B", aisle: "B-03", rack: 4, level: 3, depth: 3 },
+    location: { zone: "Zone B", aisle: "B-03", rack: 4, level: 3, depth: 3, laneAccess: "two-sided", laneLength: 5 },
+    incomingLotSize: 300,
+    fifoRequired: true,
     shipLines: [
       { plant: 2, line: 2 },
       { plant: 3, line: 2 },
@@ -204,7 +280,9 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim" | "partName">[] = [
     weightKg: 0.1,
     unitCost: 16,
     chassisZone: "engine",
-    location: { zone: "Zone A", aisle: "A-01", rack: 1, level: 2, depth: 1 },
+    location: { zone: "Zone A", aisle: "A-01", rack: 1, level: 2, depth: 1, laneAccess: "two-sided", laneLength: 5 },
+    incomingLotSize: 120,
+    fifoRequired: true,
     shipLines: [{ plant: 1, line: 2 }],
   },
   {
@@ -217,7 +295,9 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim" | "partName">[] = [
     weightKg: 3.8,
     unitCost: 74,
     chassisZone: "rear-axle",
-    location: { zone: "Zone C", aisle: "C-04", rack: 5, level: 1, depth: 5 },
+    location: { zone: "Zone C", aisle: "C-04", rack: 5, level: 1, depth: 5, laneAccess: "two-sided", laneLength: 5 },
+    incomingLotSize: 30,
+    fifoRequired: true,
     shipLines: [
       { plant: 3, line: 1 },
       { plant: 4, line: 1 },
@@ -233,7 +313,9 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim" | "partName">[] = [
     weightKg: 0.4,
     unitCost: 11,
     chassisZone: "cabin",
-    location: { zone: "Zone B", aisle: "B-06", rack: 7, level: 4, depth: 2 },
+    location: { zone: "Zone B", aisle: "B-06", rack: 7, level: 4, depth: 2, laneAccess: "two-sided", laneLength: 5 },
+    incomingLotSize: 200,
+    fifoRequired: true,
     shipLines: [
       { plant: 1, line: 1 },
       { plant: 2, line: 1 },
@@ -251,7 +333,9 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim" | "partName">[] = [
     weightKg: 0.7,
     unitCost: 19,
     chassisZone: "engine",
-    location: { zone: "Zone C", aisle: "C-02", rack: 3, level: 3, depth: 3 },
+    location: { zone: "Zone C", aisle: "C-02", rack: 3, level: 3, depth: 3, laneAccess: "one-sided", laneLength: 4 },
+    incomingLotSize: 40,
+    fifoRequired: true,
     shipLines: [{ plant: 4, line: 1 }],
   },
   {
@@ -264,7 +348,9 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim" | "partName">[] = [
     weightKg: 14.2,
     unitCost: 129,
     chassisZone: "engine",
-    location: { zone: "Zone B", aisle: "B-01", rack: 2, level: 1, depth: 2 },
+    location: { zone: "Zone B", aisle: "B-01", rack: 2, level: 1, depth: 2, laneAccess: "two-sided", laneLength: 5 },
+    incomingLotSize: 150,
+    fifoRequired: true,
     shipLines: [
       { plant: 1, line: 1 },
       { plant: 2, line: 1 },
@@ -282,7 +368,9 @@ const SKU_ROWS_RAW: Omit<SkuRow, "modelName" | "doorTrim" | "partName">[] = [
     weightKg: 1.1,
     unitCost: 28,
     chassisZone: "front-axle",
-    location: { zone: "Zone C", aisle: "C-03", rack: 4, level: 2, depth: 2 },
+    location: { zone: "Zone C", aisle: "C-03", rack: 4, level: 2, depth: 2, laneAccess: "one-sided", laneLength: 5 },
+    incomingLotSize: 260,
+    fifoRequired: true,
     shipLines: [
       { plant: 3, line: 2 },
       { plant: 4, line: 2 },
@@ -345,6 +433,91 @@ export const WAREHOUSE = {
   totalPallets: 10000,
 }
 
+// ---------------------------------------------------------------------------
+// 창고 설계 스펙 산출
+//
+// 초기 설계 단계에서 통로 수와 벽면 접합 여부를 입력받아 단면/양면 레인 수와
+// 유형별 배치 가능 용량을 자동 산출한다.
+//
+// 기하: 랙 행과 통로가 번갈아 배치된다 (랙-통로-랙-통로-랙…).
+//   통로 A개 → 랙 행 = A + 1. 각 통로는 양쪽에 랙을 두고 서빙한다.
+//   벽에 접한 양 끝단 랙 행은 한쪽에서만 접근 가능 → 단면.
+//   벽 접합 수(0/1/2)가 곧 단면 랙 행 수가 된다.
+// ---------------------------------------------------------------------------
+
+export type WallAdjacency = "both" | "one" | "none"
+
+export const WALL_ADJACENCY_LABEL: Record<WallAdjacency, string> = {
+  both: "양쪽 끝 벽 접합",
+  one: "한쪽 끝 벽 접합",
+  none: "벽 비접합 (독립 블록)",
+}
+
+export type WarehouseSpec = {
+  aisleCount: number // 통로 수
+  wallAdjacency: WallAdjacency // 벽면 접합 여부
+  baysPerRow: number // 랙 행당 베이(레인 열) 수
+  levels: number // 레벨(단) 수
+  laneDepth: number // 레인 깊이(위치 수)
+  palletCapacity: number // 팔레트당 적재량 (EA)
+}
+
+export const DEFAULT_WAREHOUSE_SPEC: WarehouseSpec = {
+  aisleCount: 6,
+  wallAdjacency: "both",
+  baysPerRow: 8,
+  levels: 4,
+  laneDepth: 5,
+  palletCapacity: 48,
+}
+
+export type WarehouseSpecResult = {
+  rackRows: number
+  oneSidedRows: number
+  twoSidedRows: number
+  oneSidedLanes: number
+  twoSidedLanes: number
+  totalLanes: number
+  oneSidedPallets: number
+  twoSidedPallets: number
+  totalPallets: number
+  oneSidedEa: number
+  twoSidedEa: number
+  totalEa: number
+}
+
+export function computeWarehouseSpec(spec: WarehouseSpec): WarehouseSpecResult {
+  const rackRows = spec.aisleCount + 1
+  const wallRows = spec.wallAdjacency === "both" ? 2 : spec.wallAdjacency === "one" ? 1 : 0
+  const oneSidedRows = Math.min(wallRows, rackRows)
+  const twoSidedRows = rackRows - oneSidedRows
+
+  const lanesPerRow = spec.baysPerRow * spec.levels
+  const oneSidedLanes = oneSidedRows * lanesPerRow
+  const twoSidedLanes = twoSidedRows * lanesPerRow
+  const totalLanes = oneSidedLanes + twoSidedLanes
+
+  const palletsPerLane = spec.laneDepth
+  const oneSidedPallets = oneSidedLanes * palletsPerLane
+  const twoSidedPallets = twoSidedLanes * palletsPerLane
+  const totalPallets = oneSidedPallets + twoSidedPallets
+
+  return {
+    rackRows,
+    oneSidedRows,
+    twoSidedRows,
+    oneSidedLanes,
+    twoSidedLanes,
+    totalLanes,
+    oneSidedPallets,
+    twoSidedPallets,
+    totalPallets,
+    oneSidedEa: oneSidedPallets * spec.palletCapacity,
+    twoSidedEa: twoSidedPallets * spec.palletCapacity,
+    totalEa: totalPallets * spec.palletCapacity,
+  }
+}
+
 export type SlottingAlert = {
   skuId: string
   from: string
@@ -356,7 +529,7 @@ export const SLOTTING_ALERT: SlottingAlert = {
   skuId: "SHK-ABS-9014",
   from: "5-Deep",
   to: "1-Deep",
-  reason: "Outflow velocity jumped +186% over the last 14 days.",
+  reason: "최근 14일 출고 속도가 +186% 급증했습니다.",
 }
 
 // --- 공장(Factory) 단위 데이터 ---------------------------------------------

@@ -10,6 +10,7 @@ import {
   History,
 } from "lucide-react"
 import { useReslotting, type HistoryEntry } from "@/components/reslotting-context"
+import { formatMin } from "@/lib/reslotting"
 
 type Kind = HistoryEntry["kind"]
 
@@ -123,6 +124,32 @@ export function ChangeHistoryLog() {
                   <p className="mt-0.5 text-xs text-muted-foreground">{h.message}</p>
                   {h.reason && (
                     <p className="mt-0.5 text-[11px] text-muted-foreground/80">사유: {h.reason}</p>
+                  )}
+                  {h.predictedNetSec !== undefined && h.actualNetSec !== undefined && (
+                    <div className="mt-1.5 inline-flex flex-wrap items-center gap-2 rounded-md border border-border bg-secondary/40 px-2 py-1">
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        순이득
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        예측{" "}
+                        <span className="font-mono font-medium text-foreground">
+                          {formatMin(h.predictedNetSec, true)}
+                        </span>
+                      </span>
+                      <span aria-hidden className="text-muted-foreground/50">
+                        vs
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        실제{" "}
+                        <span
+                          className={`font-mono font-medium ${
+                            h.actualNetSec >= h.predictedNetSec ? "text-success" : "text-warning"
+                          }`}
+                        >
+                          {formatMin(h.actualNetSec, true)}
+                        </span>
+                      </span>
+                    </div>
                   )}
                 </div>
                 <div className="shrink-0 text-right">

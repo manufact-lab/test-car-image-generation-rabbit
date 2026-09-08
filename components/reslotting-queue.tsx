@@ -2,7 +2,19 @@
 
 import { useReslotting, type QueueDecision } from "@/components/reslotting-context"
 import { CrossAbcBadge, SlotGradeBadge } from "@/components/grade-badge"
-import { type ReslottingCandidate } from "@/lib/reslotting"
+import {
+  type ReslottingCandidate,
+  type MoveVerdict,
+  VERDICT_LABEL,
+  formatMin,
+  formatPayback,
+} from "@/lib/reslotting"
+
+const VERDICT_STYLE: Record<MoveVerdict, string> = {
+  recommend: "border-primary/40 bg-primary/15 text-primary",
+  review: "border-warning/40 bg-warning/15 text-warning",
+  reject: "border-border bg-muted text-muted-foreground",
+}
 
 const DECISION_LABEL: Record<QueueDecision, string> = {
   pending: "대기",
@@ -27,7 +39,7 @@ export function ReslottingQueue() {
         <div>
           <h2 className="text-sm font-semibold text-foreground">리슬롯팅 큐</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            주문 유입에 따른 물량·빈도 변동으로 재평가된 슬롯 이동 후보 · 변동 건 우선, 이동 개선폭순
+            이동 비용 차감 후 순이득이 나는 건만 표시 · 기각 건 제외 · Payback 빠른 순 정렬
           </p>
         </div>
         <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium tabular-nums text-secondary-foreground">
@@ -37,7 +49,8 @@ export function ReslottingQueue() {
 
       {candidates.length === 0 ? (
         <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-          모든 SKU가 권장 depth에 배치되어 있습니다. 주문을 주입하면 재평가됩니다.
+          순이득이 나는 이동 후보가 없습니다. 권장 위치에 있거나, 이동 비용 대비 효과가 없어 모두
+          기각되었습니다. 주문을 주입하면 재평가됩니다.
         </div>
       ) : (
         <ul className="divide-y divide-border">
@@ -57,6 +70,14 @@ export function ReslottingQueue() {
   )
 }
 
+function CostChip({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="whitespace-nowrap">
+      {label} <span className="font-medium tabular-nums text-foreground">{value}</span>
+    </span>
+  )
+}
+
 function QueueItem({
   cand,
   decision,
@@ -70,7 +91,8 @@ function QueueItem({
   onHold: () => void
   onApply: () => void
 }) {
-  const { row, grade, currentDepth, targetDepth, direction, reason, gradeChanged } = cand
+  const { row, grade, currentDepth, targetDepth, direction, reason, gradeChanged, move, verdict } =
+    cand
   const applied = decision === "applied"
 
   return (
@@ -80,6 +102,12 @@ function QueueItem({
           <div className="flex items-center gap-2">
             <span className="font-mono text-sm font-semibold text-foreground">{row.skuId}</span>
             <SlotGradeBadge grade={grade.finalGrade} />
+            <span
+              className={`inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-semibold ${VERDICT_STYLE[verdict]}`}
+              title="이동 비용 판정"
+            >
+              {VERDICT_LABEL[verdict]}
+            </span>
           </div>
           <p className="mt-0.5 truncate text-sm text-muted-foreground">{row.partName}</p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -120,6 +148,26 @@ function QueueItem({
           }`}
         >
           {targetDepth}-Deep
+        </span>
+      </div>
+
+      {/* 이동 비용 요약 한 줄 */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+        <CostChip label="재취급" value={`${move.rehandlePallets}팔레트`} />
+        <span aria-hidden>·</span>
+        <CostChip
+          label="셔틀"
+          value={formatMin(
+            move.breakdown.handleSec + move.breakdown.shuttleSec + move.breakdown.liftSec,
+          )}
+        />
+        <span aria-hidden>·</span>
+        <CostChip label="레인 차단" value={formatMin(move.breakdown.blockLossSec)} />
+        <span aria-hidden>·</span>
+        <CostChip label="Payback" value={formatPayback(move.paybackDays)} />
+        <span aria-hidden>·</span>
+        <span className="font-medium text-primary">
+          순이득 {formatMin(move.netGainSec, true)}
         </span>
       </div>
 

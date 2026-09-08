@@ -10,14 +10,16 @@ import { OrderInjector } from "@/components/order-injector"
 import { OrderStream } from "@/components/order-stream"
 import { ChangeHistoryLog } from "@/components/change-history-log"
 import { SlottingAlert } from "@/components/slotting-alert"
+import { WarehouseSpecPlanner } from "@/components/warehouse-spec-planner"
 import { useReslotting } from "@/components/reslotting-context"
 
-type TabKey = "dashboard" | "queue" | "history"
+type TabKey = "dashboard" | "queue" | "history" | "design"
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "dashboard", label: "대시보드" },
   { key: "queue", label: "리슬롯팅 큐" },
   { key: "history", label: "변경 이력" },
+  { key: "design", label: "창고 설계" },
 ]
 
 export function DashboardTabs() {
@@ -95,6 +97,12 @@ export function DashboardTabs() {
       {tab === "history" && (
         <div className="min-w-0">
           <ChangeHistoryLog />
+        </div>
+      )}
+
+      {tab === "design" && (
+        <div className="min-w-0">
+          <WarehouseSpecPlanner />
         </div>
       )}
 

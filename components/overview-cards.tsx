@@ -1,6 +1,6 @@
 "use client"
 
-import { Boxes, Package, Timer, Shuffle } from "lucide-react"
+import { Boxes, Package, Timer, Shuffle, TrendingUp } from "lucide-react"
 import { daysOfSupply } from "@/lib/inventory-data"
 import { useReslotting } from "@/components/reslotting-context"
 
@@ -27,7 +27,7 @@ function CardShell({
 }
 
 export function OverviewCards() {
-  const { rows, candidates, pendingCount, factory } = useReslotting()
+  const { rows, candidates, pendingCount, factory, moveParams } = useReslotting()
 
   const fillPct = Math.round(
     (factory.usedPallets / factory.totalPallets) * 100,
@@ -40,8 +40,12 @@ export function OverviewCards() {
       return acc + (Number.isFinite(d) ? d : 0)
     }, 0) / rows.length
 
+  // 예상 순이득: 큐에 오른(기각 제외) 후보들의 순이득 합계 (이동 비용 차감 후)
+  const totalNetSec = candidates.reduce((acc, c) => acc + c.move.netGainSec, 0)
+  const totalNetHours = totalNetSec / 3600
+
   return (
-    <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
       <CardShell title="전체 보관량 (Total Capacity)" icon={<Boxes className="size-4" />}>
         <div className="flex items-baseline gap-2">
           <span className="font-mono text-3xl font-semibold tabular-nums text-foreground">
@@ -112,6 +116,24 @@ export function OverviewCards() {
         <p className="mt-4 text-xs text-muted-foreground">
           Cross-ABC 재평가 결과 승인 대기{" "}
           <span className="font-medium text-warning">{pendingCount}건</span> · 큐 탭에서 검토
+        </p>
+      </CardShell>
+
+      <CardShell
+        title={`예상 순이득 (${moveParams.gradeValidityDays}일)`}
+        icon={<TrendingUp className="size-4" />}
+      >
+        <div className="flex items-baseline gap-2">
+          <span className="font-mono text-3xl font-semibold tabular-nums text-primary">
+            {totalNetHours >= 0 ? "+" : "−"}
+            {Math.abs(totalNetHours).toFixed(1)}
+          </span>
+          <span className="text-sm text-muted-foreground">시간</span>
+        </div>
+        <p className="mt-4 text-xs text-muted-foreground">
+          이동 비용 차감 후 ·{" "}
+          <span className="font-medium text-foreground">{candidates.length}건</span> 기준 (Payback ≤{" "}
+          {moveParams.paybackThresholdDays}일)
         </p>
       </CardShell>
     </section>
