@@ -375,12 +375,13 @@ export type Factory = {
   slottingAlert: SlottingAlert
 }
 
-// 2공장 데이터: 1공장 SKU를 기준으로 재고/출고/빈도만 결정적으로 변형(내부 위치는 동일).
-function scaleRowsForFactory2(base: SkuRow[]): SkuRow[] {
+// 공장별 데이터: 기준 SKU에서 재고/출고/빈도만 결정적으로 변형(내부 위치는 동일).
+// seed 접미사가 다르면 공장마다 다른 수량 분포가 나온다.
+function scaleRowsForFactory(base: SkuRow[], seed: string): SkuRow[] {
   return base.map((row) => {
-    const invMul = 0.45 + seededIndex(row.skuId + "-f2i", 110) / 100 // 0.45–1.54
-    const outMul = 0.55 + seededIndex(row.skuId + "-f2o", 90) / 100 // 0.55–1.44
-    const frqMul = 0.55 + seededIndex(row.skuId + "-f2f", 95) / 100 // 0.55–1.49
+    const invMul = 0.45 + seededIndex(row.skuId + seed + "i", 110) / 100 // 0.45–1.54
+    const outMul = 0.55 + seededIndex(row.skuId + seed + "o", 90) / 100 // 0.55–1.44
+    const frqMul = 0.55 + seededIndex(row.skuId + seed + "f", 95) / 100 // 0.55–1.49
     return {
       ...row,
       inventory: Math.max(6, Math.round(row.inventory * invMul)),
@@ -390,7 +391,9 @@ function scaleRowsForFactory2(base: SkuRow[]): SkuRow[] {
   })
 }
 
-const FACTORY2_ROWS = scaleRowsForFactory2(SKU_ROWS)
+const FACTORY2_ROWS = scaleRowsForFactory(SKU_ROWS, "-f2")
+const FACTORY3_ROWS = scaleRowsForFactory(SKU_ROWS, "-f3")
+const FACTORY4_ROWS = scaleRowsForFactory(SKU_ROWS, "-f4")
 
 export const FACTORIES: Record<number, Factory> = {
   1: {
@@ -422,9 +425,43 @@ export const FACTORIES: Record<number, Factory> = {
       reason: "Auburn 공장 조립라인 증설로 최근 14일 출고 속도가 급증했습니다.",
     },
   },
+  3: {
+    id: 3,
+    name: "앨라배마 공장",
+    country: "미국",
+    warehouseLabel: "창고 A-03",
+    aisle: "A-03",
+    rows: FACTORY3_ROWS,
+    usedPallets: 9240,
+    totalPallets: 11000,
+    totalSkuCount: 391,
+    slottingAlert: {
+      skuId: "SHK-ABS-9014",
+      from: "5-Deep",
+      to: "1-Deep",
+      reason: "앨라배마 공장 SUV 라인 물량 증가로 최근 14일 출고 속도가 급증했습니다.",
+    },
+  },
+  4: {
+    id: 4,
+    name: "슬로바키아 공장",
+    country: "유럽",
+    warehouseLabel: "창고 A-04",
+    aisle: "A-04",
+    rows: FACTORY4_ROWS,
+    usedPallets: 5020,
+    totalPallets: 7500,
+    totalSkuCount: 224,
+    slottingAlert: {
+      skuId: "SHK-ABS-9014",
+      from: "5-Deep",
+      to: "1-Deep",
+      reason: "슬로바키아 공장 유럽 수출 물량 변동으로 최근 14일 출고 속도가 급증했습니다.",
+    },
+  },
 }
 
-export const FACTORY_LIST: Factory[] = [FACTORIES[1], FACTORIES[2]]
+export const FACTORY_LIST: Factory[] = [FACTORIES[1], FACTORIES[2], FACTORIES[3], FACTORIES[4]]
 
 export function getFactory(id: number): Factory | undefined {
   return FACTORIES[id]
