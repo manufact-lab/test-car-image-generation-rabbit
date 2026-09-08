@@ -427,7 +427,7 @@ export const FACTORIES: Record<number, Factory> = {
   },
   3: {
     id: 3,
-    name: "앨라배마 공장",
+    name: "Alabama 공장",
     country: "미국",
     warehouseLabel: "창고 A-03",
     aisle: "A-03",
@@ -439,12 +439,12 @@ export const FACTORIES: Record<number, Factory> = {
       skuId: "SHK-ABS-9014",
       from: "5-Deep",
       to: "1-Deep",
-      reason: "앨라배마 공장 SUV 라인 물량 증가로 최근 14일 출고 속도가 급증했습니다.",
+      reason: "Alabama 공장 SUV 라인 물량 증가로 최근 14일 출고 속도가 급증했습니다.",
     },
   },
   4: {
     id: 4,
-    name: "슬로바키아 공장",
+    name: "Slovakia 공장",
     country: "유럽",
     warehouseLabel: "창고 A-04",
     aisle: "A-04",
@@ -456,7 +456,7 @@ export const FACTORIES: Record<number, Factory> = {
       skuId: "SHK-ABS-9014",
       from: "5-Deep",
       to: "1-Deep",
-      reason: "슬로바키아 공장 유럽 수출 물량 변동으로 최근 14일 출고 속도가 급증했습니다.",
+      reason: "Slovakia 공장 유럽 수출 물량 변동으로 최근 14일 출고 속도가 급증했습니다.",
     },
   },
 }
