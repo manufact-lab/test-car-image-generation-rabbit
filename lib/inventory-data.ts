@@ -358,3 +358,71 @@ export const SLOTTING_ALERT: SlottingAlert = {
   to: "1-Deep",
   reason: "Outflow velocity jumped +186% over the last 14 days.",
 }
+
+// --- 공장(Factory) 단위 데이터 ---------------------------------------------
+// 각 공장은 동일한 대시보드 구조를 쓰되, SKU 재고량·출고량·빈도·창고 용량만 다르다.
+
+export type Factory = {
+  id: number
+  name: string // "1공장"
+  warehouseLabel: string // "창고 A-01"
+  aisle: string // "A-01"
+  rows: SkuRow[]
+  usedPallets: number
+  totalPallets: number
+  totalSkuCount: number
+  slottingAlert: SlottingAlert
+}
+
+// 2공장 데이터: 1공장 SKU를 기준으로 재고/출고/빈도만 결정적으로 변형(내부 위치는 동일).
+function scaleRowsForFactory2(base: SkuRow[]): SkuRow[] {
+  return base.map((row) => {
+    const invMul = 0.45 + seededIndex(row.skuId + "-f2i", 110) / 100 // 0.45–1.54
+    const outMul = 0.55 + seededIndex(row.skuId + "-f2o", 90) / 100 // 0.55–1.44
+    const frqMul = 0.55 + seededIndex(row.skuId + "-f2f", 95) / 100 // 0.55–1.49
+    return {
+      ...row,
+      inventory: Math.max(6, Math.round(row.inventory * invMul)),
+      dailyOutflow: Math.max(6, Math.round(row.dailyOutflow * outMul)),
+      dailyPickFreq: Math.max(2, Math.round(row.dailyPickFreq * frqMul)),
+    }
+  })
+}
+
+const FACTORY2_ROWS = scaleRowsForFactory2(SKU_ROWS)
+
+export const FACTORIES: Record<number, Factory> = {
+  1: {
+    id: 1,
+    name: "1공장",
+    warehouseLabel: "창고 A-01",
+    aisle: "A-01",
+    rows: SKU_ROWS,
+    usedPallets: 8500,
+    totalPallets: 10000,
+    totalSkuCount: 342,
+    slottingAlert: SLOTTING_ALERT,
+  },
+  2: {
+    id: 2,
+    name: "2공장",
+    warehouseLabel: "창고 A-02",
+    aisle: "A-02",
+    rows: FACTORY2_ROWS,
+    usedPallets: 6180,
+    totalPallets: 8000,
+    totalSkuCount: 268,
+    slottingAlert: {
+      skuId: "SHK-ABS-9014",
+      from: "5-Deep",
+      to: "1-Deep",
+      reason: "2공장 조립라인 증설로 최근 14일 출고 속도가 급증했습니다.",
+    },
+  },
+}
+
+export const FACTORY_LIST: Factory[] = [FACTORIES[1], FACTORIES[2]]
+
+export function getFactory(id: number): Factory | undefined {
+  return FACTORIES[id]
+}

@@ -2,10 +2,12 @@
 
 import { useState } from "react"
 import { Zap, X, ArrowRight } from "lucide-react"
-import { SLOTTING_ALERT } from "@/lib/inventory-data"
+import { useReslotting } from "@/components/reslotting-context"
 
 export function SlottingAlert({ onReview }: { onReview?: () => void }) {
   const [open, setOpen] = useState(true)
+  const { factory } = useReslotting()
+  const alert = factory.slottingAlert
 
   if (!open) return null
 
@@ -32,18 +34,18 @@ export function SlottingAlert({ onReview }: { onReview?: () => void }) {
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
               <span className="font-mono font-medium text-foreground">
-                {SLOTTING_ALERT.skuId}
+                {alert.skuId}
               </span>
               를{" "}
               <span className="inline-flex items-center gap-1 font-medium text-foreground">
-                {SLOTTING_ALERT.from}
+                {alert.from}
                 <ArrowRight className="size-3 text-primary" />
-                {SLOTTING_ALERT.to}
+                {alert.to}
               </span>
               로 재배치하세요.
             </p>
             <p className="mt-1.5 text-xs text-muted-foreground">
-              {SLOTTING_ALERT.reason}
+              {alert.reason}
             </p>
             <div className="mt-3 flex items-center gap-2">
               <button
