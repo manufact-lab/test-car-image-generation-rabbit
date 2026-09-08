@@ -150,14 +150,14 @@ function DoorHighlight({ doorTrim }: { doorTrim: DoorTrim }) {
     <group>
       <mesh ref={markerRef} position={[pos[0], pos[1] + 0.4, pos[2]]}>
         <sphereGeometry args={[0.08, 20, 20]} />
-        <meshStandardMaterial color="#8ab800" emissive="#8ab800" emissiveIntensity={1.2} />
+        <meshStandardMaterial color="#1e3a6b" emissive="#2f5fb0" emissiveIntensity={1.2} />
       </mesh>
       <mesh ref={ringRef} position={pos} rotation={[0, 0, 0]}>
         <torusGeometry args={[0.22, 0.03, 16, 40]} />
-        <meshStandardMaterial color="#c8e86a" emissive="#8ab800" emissiveIntensity={0.9} />
+        <meshStandardMaterial color="#3f6fc0" emissive="#2f5fb0" emissiveIntensity={0.9} />
       </mesh>
       <Html position={[pos[0], pos[1] + 0.65, pos[2]]} center distanceFactor={8}>
-        <div className="pointer-events-none whitespace-nowrap rounded-md border border-[#8ab800]/50 bg-black/80 px-2 py-1 text-[11px] font-medium text-[#c8e86a] backdrop-blur">
+        <div className="pointer-events-none whitespace-nowrap rounded-md border border-[#2f5fb0]/50 bg-white/90 px-2 py-1 text-[11px] font-medium text-[#1e3a6b] backdrop-blur">
           {doorTrim}
         </div>
       </Html>
