@@ -13,19 +13,29 @@ const RACK_COLS = 8
 const LEVELS = 4 // rendered top (4) to bottom (1)
 const ALL_PICK_MODES = ["flow-through", "dual-pick", "lifo"] as const
 
-// 레인 끝단 표시: 통로 입구 또는 벽(단면 레인의 막힌 면)
-function LaneEnd({ label, wall }: { label: string; wall?: boolean }) {
+// 레인 끝단 표시: 통로 입구(접근 방향 화살표) 또는 벽(단면 레인의 막힌 면)
+function LaneEnd({
+  label,
+  wall,
+  arrow,
+}: {
+  label: string
+  wall?: boolean
+  arrow?: "left" | "right"
+}) {
   return (
-    <div className="flex w-6 shrink-0 flex-col items-center gap-1">
+    <div className="flex w-7 shrink-0 flex-col items-center gap-1">
       <div
         className={cn(
-          "flex h-8 w-full items-center justify-center rounded-[4px] border text-[9px] font-bold",
+          "flex h-9 w-full items-center justify-center rounded-[4px] border text-xs font-bold",
           wall
             ? "border-muted-foreground/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--color-muted-foreground)_3px,var(--color-muted-foreground)_4px)] text-muted-foreground"
             : "border-dashed border-primary/50 bg-primary/5 text-primary",
         )}
         aria-hidden
-      />
+      >
+        {arrow === "right" ? "→" : arrow === "left" ? "←" : null}
+      </div>
       <span className="text-[9px] text-muted-foreground">{label}</span>
     </div>
   )
@@ -163,18 +173,26 @@ export function WarehouseMap({
 
           <div className="flex items-stretch gap-1.5">
             {/* 근거리 통로 입구 (양쪽 공통) */}
-            <LaneEnd label="입구" />
+            <LaneEnd label="입구" arrow="right" />
 
             {Array.from({ length: location.laneLength }, (_, i) => {
               const depth = i + 1
               const isCurrent = depth === location.depth
               const isTarget = targetDepth !== undefined && depth === targetDepth
               const isBoth = isCurrent && isTarget
+              // 유효깊이: 양면=가까운 쪽 기준 min(), 단면=위치 그대로
+              const effEach = oneSided
+                ? depth
+                : Math.min(depth, location.laneLength + 1 - depth)
+              const maxEff = oneSided
+                ? location.laneLength
+                : Math.ceil(location.laneLength / 2)
+              const effortRatio = effEach / maxEff
               return (
                 <div key={depth} className="flex flex-1 flex-col items-center gap-1">
                   <div
                     className={cn(
-                      "flex h-8 w-full items-center justify-center rounded-[4px] border",
+                      "relative flex h-9 w-full items-center justify-center overflow-hidden rounded-[4px] border",
                       isBoth
                         ? "border-success bg-success/25"
                         : isCurrent
@@ -183,13 +201,25 @@ export function WarehouseMap({
                             ? "border-warning border-dashed bg-warning/15"
                             : "border-border bg-secondary/40",
                     )}
+                    title={`위치 D${depth} · 유효깊이 ${effEach}`}
                   >
-                    {isCurrent && (
-                      <span className="text-[10px] font-bold text-primary">현재</span>
+                    {/* 접근 난이도: 유효깊이가 깊을수록 채움이 높다 */}
+                    {!isCurrent && !isTarget && (
+                      <div
+                        className="absolute inset-x-0 bottom-0 bg-muted-foreground/15"
+                        style={{ height: `${Math.round(effortRatio * 100)}%` }}
+                        aria-hidden
+                      />
                     )}
-                    {isTarget && !isCurrent && (
-                      <span className="text-[10px] font-bold text-warning">권장</span>
-                    )}
+                    <span className="relative z-10 font-mono text-[10px] font-semibold text-foreground/80">
+                      {isCurrent ? (
+                        <span className="text-primary">현재</span>
+                      ) : isTarget ? (
+                        <span className="text-warning">권장</span>
+                      ) : (
+                        effEach
+                      )}
+                    </span>
                   </div>
                   <span className="font-mono text-[10px] text-muted-foreground">D{depth}</span>
                 </div>
@@ -197,8 +227,14 @@ export function WarehouseMap({
             })}
 
             {/* 원거리 끝: 단면=벽(막힘), 양면=반대편 통로 입구 */}
-            {oneSided ? <LaneEnd label="벽" wall /> : <LaneEnd label="입구" />}
+            {oneSided ? <LaneEnd label="벽" wall /> : <LaneEnd label="입구" arrow="left" />}
           </div>
+
+          {/* 범례: 셀 안 숫자 = 유효깊이(접근 노력), 채움 높이 = 난이도 */}
+          <p className="mt-1.5 text-[10px] text-muted-foreground/80">
+            셀 안 숫자 = 유효깊이(작을수록 빠름) · 채움 높이 = 접근 난이도
+            {!oneSided && " · 양면은 양쪽 입구에서 접근해 가운데가 가장 깊습니다"}
+          </p>
 
           <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
             {oneSided ? (
