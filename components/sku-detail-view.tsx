@@ -13,8 +13,9 @@ import { Chassis3D } from "@/components/chassis-3d"
 import { WarehouseMap } from "@/components/warehouse-map"
 import { DepthEfficiencyChart } from "@/components/depth-efficiency-chart"
 import { CrossAbcBadge, SlotGradeBadge } from "@/components/grade-badge"
-import { useSlotGrade } from "@/components/reslotting-context"
-import { GRADE_DEPTH_LABEL } from "@/lib/reslotting"
+import { useSlotGrade, useReslotting } from "@/components/reslotting-context"
+import { GRADE_DEPTH_LABEL, computeMoveOptions } from "@/lib/reslotting"
+import { MoveOptionsTable } from "@/components/move-options-table"
 
 function MetaItem({
   icon: Icon,
@@ -84,9 +85,13 @@ export function SkuDetailView({
   const dos = daysOfSupply(row)
   const tier = dosTier(dos)
   const grade = useSlotGrade(row)
+  const { moveParams } = useReslotting()
   const currentDepth = row.location.depth
   const targetDepth = grade.targetDepth
   const needsMove = currentDepth !== targetDepth
+  // 이동 추천은 Cross-ABC 룰 엔진 결과에서만 파생한다. 깊이 조정(①) 비용 판정을 함께 본다.
+  const depthOption = computeMoveOptions(row, grade, moveParams)[0]
+  const costRejected = needsMove && depthOption.verdict === "reject"
 
   return (
     <div
@@ -238,7 +243,15 @@ export function SkuDetailView({
                     {GRADE_DEPTH_LABEL[grade.finalGrade]}
                   </span>
                 </div>
-                {needsMove ? (
+                {!needsMove ? (
+                  <span className="rounded-md border border-success/40 bg-success/15 px-2 py-1 text-xs font-medium text-success">
+                    최적 배치됨
+                  </span>
+                ) : costRejected ? (
+                  <span className="rounded-md border border-warning/40 bg-warning/15 px-2.5 py-1 text-xs font-medium text-warning">
+                    권장은 {targetDepth}-Deep이나 이동 비용 대비 효과 없어 현 위치 유지
+                  </span>
+                ) : (
                   <div className="flex items-center gap-2 text-sm">
                     <span className="rounded-md border border-border bg-secondary px-2 py-1 font-mono text-xs text-secondary-foreground">
                       현재 {currentDepth}-Deep
@@ -253,10 +266,6 @@ export function SkuDetailView({
                       권장 {targetDepth}-Deep
                     </span>
                   </div>
-                ) : (
-                  <span className="rounded-md border border-success/40 bg-success/15 px-2 py-1 text-xs font-medium text-success">
-                    최적 배치됨
-                  </span>
                 )}
               </div>
 
@@ -275,6 +284,11 @@ export function SkuDetailView({
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* 재배치 옵션 3안 비교 */}
+            <div className="mt-4">
+              <MoveOptionsTable row={row} grade={grade} />
             </div>
           </section>
         </div>

@@ -356,7 +356,7 @@ export const SLOTTING_ALERT: SlottingAlert = {
   skuId: "SHK-ABS-9014",
   from: "5-Deep",
   to: "1-Deep",
-  reason: "Outflow velocity jumped +186% over the last 14 days.",
+  reason: "최근 14일 출고 속도가 +186% 급증했습니다.",
 }
 
 // --- 공장(Factory) 단위 데이터 ---------------------------------------------

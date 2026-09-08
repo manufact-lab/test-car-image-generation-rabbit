@@ -12,28 +12,21 @@ import {
   Tooltip,
 } from "recharts"
 import type { SkuRow } from "@/lib/inventory-data"
-import {
-  depthEfficiencyCurve,
-  optimalDepth,
-  abcClass,
-} from "@/lib/inventory-data"
+import { depthEfficiencyCurve, abcClass } from "@/lib/inventory-data"
 
 export function DepthEfficiencyChart({ row }: { row: SkuRow }) {
   const data = depthEfficiencyCurve(row)
-  const best = optimalDepth(row)
   const current = row.location.depth
   const cls = abcClass(row)
-  const willMove = best !== current
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3 text-xs">
         <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-          <span className="size-2 rounded-[3px] bg-primary" /> Pick Efficiency (%)
+          <span className="size-2 rounded-[3px] bg-primary" /> 피킹 효율 (Pick %)
         </span>
         <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-          <span className="size-2 rounded-[3px] bg-muted-foreground" /> Storage
-          Density (%)
+          <span className="size-2 rounded-[3px] bg-muted-foreground" /> 적재 밀도 (Density %)
         </span>
         <span className="ml-auto rounded-md border border-border bg-secondary/50 px-2 py-0.5 font-mono text-muted-foreground">
           Class {cls}
@@ -96,7 +89,7 @@ export function DepthEfficiencyChart({ row }: { row: SkuRow }) {
               stroke="var(--color-destructive)"
               strokeDasharray="4 4"
               label={{
-                value: "Current",
+                value: "현재",
                 position: "top",
                 fill: "var(--color-destructive)",
                 fontSize: 10,
@@ -104,40 +97,6 @@ export function DepthEfficiencyChart({ row }: { row: SkuRow }) {
             />
           </ComposedChart>
         </ResponsiveContainer>
-      </div>
-
-      <div
-        className={
-          willMove
-            ? "rounded-lg border border-primary/40 bg-primary/10 p-3"
-            : "rounded-lg border border-border bg-secondary/40 p-3"
-        }
-      >
-        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          AI Recommendation
-        </div>
-        {willMove ? (
-          <p className="mt-1 text-sm text-foreground">
-            Relocate from{" "}
-            <span className="font-mono font-semibold text-destructive">
-              D{current}-Deep
-            </span>{" "}
-            to{" "}
-            <span className="font-mono font-semibold text-primary">
-              D{best}-Deep
-            </span>{" "}
-            to balance retrieval speed against lane density for this Class {cls}{" "}
-            mover.
-          </p>
-        ) : (
-          <p className="mt-1 text-sm text-foreground">
-            Current{" "}
-            <span className="font-mono font-semibold text-primary">
-              D{current}-Deep
-            </span>{" "}
-            placement is already optimal for this Class {cls} mover.
-          </p>
-        )}
       </div>
     </div>
   )

@@ -13,9 +13,11 @@ import {
 import { FACTORIES, type Factory, type SkuRow } from "@/lib/inventory-data"
 import {
   DEFAULT_THRESHOLDS,
+  DEFAULT_MOVE_PARAMS,
   findReslottingCandidates,
   classifySlot,
   type SlottingThresholds,
+  type MoveCostParams,
   type ReslottingCandidate,
 } from "@/lib/reslotting"
 
@@ -45,6 +47,9 @@ export type HistoryEntry = {
   afterDepth?: number
   approver?: string
   reason?: string
+  // 이동 실행 건: 예측 순이득 vs 실제 절감 (등급 유효기간 기준, 초)
+  predictedNetSec?: number
+  actualNetSec?: number
 }
 
 const APPROVER = "관리자 (Kim)"
@@ -55,6 +60,8 @@ type ReslottingContextValue = {
   rows: SkuRow[] // 라이브 행 (주문 델타 반영)
   thresholds: SlottingThresholds
   setThresholds: (t: SlottingThresholds) => void
+  moveParams: MoveCostParams
+  setMoveParams: (p: MoveCostParams) => void
   windowDays: number
   setWindowDays: (n: number) => void
   candidates: ReslottingCandidate[]
@@ -83,6 +90,13 @@ function nextId() {
   return `e${idCounter}-${Date.now()}`
 }
 
+// 결정적 해시(0~99) — 예측 대비 실제 절감의 실현계수 산출용
+function seededPct(seed: string): number {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0
+  return Math.abs(h) % 100
+}
+
 export function ReslottingProvider({
   factory = FACTORIES[1],
   children,
@@ -93,6 +107,7 @@ export function ReslottingProvider({
   const baseRows = factory.rows
 
   const [thresholds, setThresholdsState] = useState<SlottingThresholds>(DEFAULT_THRESHOLDS)
+  const [moveParams, setMoveParamsState] = useState<MoveCostParams>(DEFAULT_MOVE_PARAMS)
   const [windowDays, setWindowDaysState] = useState(7)
   const [orderEvents, setOrderEvents] = useState<OrderEvent[]>([])
   const [decisions, setDecisions] = useState<Record<string, QueueDecision>>({})
@@ -147,8 +162,8 @@ export function ReslottingProvider({
   }, [baseRows, orderEvents, appliedDepths, simDay, windowDays])
 
   const candidates = useMemo(
-    () => findReslottingCandidates(rows, thresholds, baselineById),
-    [rows, thresholds, baselineById],
+    () => findReslottingCandidates(rows, thresholds, moveParams, baselineById),
+    [rows, thresholds, moveParams, baselineById],
   )
 
   const setThresholds = useCallback(
@@ -160,6 +175,20 @@ export function ReslottingProvider({
         kind: "rule",
         simDay: simDayRef.current,
         message: `임계값 조정: 물량 A≥${t.volumeA}/B≥${t.volumeB}, 빈도 A≥${t.freqA}/B≥${t.freqB}, 최소 Depth차 ${t.minDepthGap}`,
+      })
+    },
+    [log],
+  )
+
+  const setMoveParams = useCallback(
+    (p: MoveCostParams) => {
+      setMoveParamsState(p)
+      log({
+        skuId: "—",
+        partName: "이동 비용",
+        kind: "rule",
+        simDay: simDayRef.current,
+        message: `이동 비용 파라미터 조정: 팔레트 ${p.palletCapacity}EA · 셔틀 ${p.shuttleHandleSec}s · 주행 ${p.travelSecPerDepth}s/깊이 · 리프트 ${p.liftSec}s · 차단계수 ${p.laneBlockLossFactor} · 유효 ${p.gradeValidityDays}일 · Payback 임계 ${p.paybackThresholdDays}일`,
       })
     },
     [log],
@@ -219,6 +248,10 @@ export function ReslottingProvider({
       if (!cand) return
       setAppliedDepths((prev) => ({ ...prev, [skuId]: cand.targetDepth }))
       setDecisions((prev) => ({ ...prev, [skuId]: "applied" }))
+      // 예측 순이득 vs 실제 절감: 시뮬레이션에서 실제값은 예측값에 실현계수(0.82~1.14)를 곱해 산출.
+      const predictedNetSec = cand.move.netGainSec
+      const realizedFactor = 0.82 + (seededPct(skuId + simDayRef.current) % 33) / 100
+      const actualNetSec = predictedNetSec * realizedFactor
       log({
         skuId,
         partName: cand.row.partName,
@@ -228,6 +261,8 @@ export function ReslottingProvider({
         afterDepth: cand.targetDepth,
         approver: APPROVER,
         reason: cand.reason,
+        predictedNetSec,
+        actualNetSec,
         message: `${cand.currentDepth}-Deep → ${cand.targetDepth}-Deep 이동 실행`,
       })
     },
@@ -306,6 +341,8 @@ export function ReslottingProvider({
     rows,
     thresholds,
     setThresholds,
+    moveParams,
+    setMoveParams,
     windowDays,
     setWindowDays,
     candidates,

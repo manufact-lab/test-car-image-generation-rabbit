@@ -21,7 +21,7 @@ export function SlottingAlert({ onReview }: { onReview?: () => void }) {
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-semibold text-foreground">
-                Dynamic Slotting 제안
+                동적 슬로팅 (Dynamic Slotting) 제안
               </p>
               <button
                 type="button"
