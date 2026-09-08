@@ -1,7 +1,7 @@
 "use client"
 
 import { Boxes, Package, Timer, Shuffle } from "lucide-react"
-import { WAREHOUSE, daysOfSupply } from "@/lib/inventory-data"
+import { daysOfSupply } from "@/lib/inventory-data"
 import { useReslotting } from "@/components/reslotting-context"
 
 function CardShell({
@@ -27,10 +27,10 @@ function CardShell({
 }
 
 export function OverviewCards() {
-  const { rows, candidates, pendingCount } = useReslotting()
+  const { rows, candidates, pendingCount, factory } = useReslotting()
 
   const fillPct = Math.round(
-    (WAREHOUSE.usedPallets / WAREHOUSE.totalPallets) * 100,
+    (factory.usedPallets / factory.totalPallets) * 100,
   )
 
   const skuCount = rows.length
@@ -45,10 +45,10 @@ export function OverviewCards() {
       <CardShell title="전체 보관량 (Total Capacity)" icon={<Boxes className="size-4" />}>
         <div className="flex items-baseline gap-2">
           <span className="font-mono text-3xl font-semibold tabular-nums text-foreground">
-            {WAREHOUSE.usedPallets.toLocaleString()}
+            {factory.usedPallets.toLocaleString()}
           </span>
           <span className="text-sm text-muted-foreground">
-            / {WAREHOUSE.totalPallets.toLocaleString()} Pallets
+            / {factory.totalPallets.toLocaleString()} Pallets
           </span>
         </div>
         <div className="mt-4">
@@ -75,7 +75,7 @@ export function OverviewCards() {
       <CardShell title="총 관리 SKU 수량 (Total SKU)" icon={<Package className="size-4" />}>
         <div className="flex items-baseline gap-2">
           <span className="font-mono text-3xl font-semibold tabular-nums text-foreground">
-            {(342).toLocaleString()}
+            {factory.totalSkuCount.toLocaleString()}
           </span>
           <span className="text-sm text-muted-foreground">Items</span>
         </div>

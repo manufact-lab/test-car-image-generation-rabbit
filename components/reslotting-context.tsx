@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import { SKU_ROWS, type SkuRow } from "@/lib/inventory-data"
+import { FACTORIES, type Factory, type SkuRow } from "@/lib/inventory-data"
 import {
   DEFAULT_THRESHOLDS,
   findReslottingCandidates,
@@ -51,6 +51,7 @@ const APPROVER = "관리자 (Kim)"
 const TICK_MS = 1600 // 자동 시뮬레이션 1일 진행 간격
 
 type ReslottingContextValue = {
+  factory: Factory
   rows: SkuRow[] // 라이브 행 (주문 델타 반영)
   thresholds: SlottingThresholds
   setThresholds: (t: SlottingThresholds) => void
@@ -82,7 +83,15 @@ function nextId() {
   return `e${idCounter}-${Date.now()}`
 }
 
-export function ReslottingProvider({ children }: { children: ReactNode }) {
+export function ReslottingProvider({
+  factory = FACTORIES[1],
+  children,
+}: {
+  factory?: Factory
+  children: ReactNode
+}) {
+  const baseRows = factory.rows
+
   const [thresholds, setThresholdsState] = useState<SlottingThresholds>(DEFAULT_THRESHOLDS)
   const [windowDays, setWindowDaysState] = useState(7)
   const [orderEvents, setOrderEvents] = useState<OrderEvent[]>([])
@@ -101,8 +110,8 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
 
   // 베이스라인(주문 델타 없는 원본) — 등급 변동 판정용
   const baselineById = useMemo(
-    () => new Map(SKU_ROWS.map((r) => [r.skuId, r])),
-    [],
+    () => new Map(baseRows.map((r) => [r.skuId, r])),
+    [baseRows],
   )
 
   // 라이브 행: 원본 + Rolling window 주문 델타 + 적용된 depth 이동
@@ -120,7 +129,7 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
       deltaMap.set(ev.skuId, cur)
     }
 
-    return SKU_ROWS.map((row) => {
+    return baseRows.map((row) => {
       const d = deltaMap.get(row.skuId)
       const appliedDepth = appliedDepths[row.skuId]
       if (!d && appliedDepth === undefined) return row
@@ -135,7 +144,7 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
             : row.location,
       }
     })
-  }, [orderEvents, appliedDepths, simDay, windowDays])
+  }, [baseRows, orderEvents, appliedDepths, simDay, windowDays])
 
   const candidates = useMemo(
     () => findReslottingCandidates(rows, thresholds, baselineById),
@@ -173,7 +182,7 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
   const approve = useCallback(
     (skuId: string) => {
       setDecisions((prev) => ({ ...prev, [skuId]: "approved" }))
-      const row = SKU_ROWS.find((r) => r.skuId === skuId)
+      const row = baseRows.find((r) => r.skuId === skuId)
       if (row)
         log({
           skuId,
@@ -184,13 +193,13 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
           message: "리슬롯팅 승인됨",
         })
     },
-    [log],
+    [baseRows, log],
   )
 
   const hold = useCallback(
     (skuId: string) => {
       setDecisions((prev) => ({ ...prev, [skuId]: "held" }))
-      const row = SKU_ROWS.find((r) => r.skuId === skuId)
+      const row = baseRows.find((r) => r.skuId === skuId)
       if (row)
         log({
           skuId,
@@ -201,7 +210,7 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
           message: "리슬롯팅 보류됨",
         })
     },
-    [log],
+    [baseRows, log],
   )
 
   const apply = useCallback(
@@ -227,7 +236,7 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
 
   const injectOrder = useCallback(
     (skuId: string, qty: number, orders = 1) => {
-      const row = SKU_ROWS.find((r) => r.skuId === skuId)
+      const row = baseRows.find((r) => r.skuId === skuId)
       if (!row) return
       const day = simDayRef.current
       setOrderEvents((prev) => [
@@ -242,18 +251,18 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
         message: `주문 유입 +${qty} EA · 피킹 +${orders}`,
       })
     },
-    [log],
+    [baseRows, log],
   )
 
   // 데모용: 무작위 SKU 몇 건에 주문 배치 주입 (빈도/물량 갱신 → 등급 변동 유도)
   const injectRandomBatch = useCallback(() => {
-    const picks = [...SKU_ROWS].sort(() => Math.random() - 0.5).slice(0, 3)
+    const picks = [...baseRows].sort(() => Math.random() - 0.5).slice(0, 3)
     picks.forEach((row) => {
       const orders = 2 + Math.floor(Math.random() * 4) // 2~5건
       const qty = orders * (10 + Math.floor(Math.random() * 25))
       injectOrder(row.skuId, qty, orders)
     })
-  }, [injectOrder])
+  }, [baseRows, injectOrder])
 
   const advanceDay = useCallback(() => {
     simDayRef.current += 1
@@ -293,6 +302,7 @@ export function ReslottingProvider({ children }: { children: ReactNode }) {
   )
 
   const value: ReslottingContextValue = {
+    factory,
     rows,
     thresholds,
     setThresholds,
