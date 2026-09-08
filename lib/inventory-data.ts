@@ -358,3 +358,111 @@ export const SLOTTING_ALERT: SlottingAlert = {
   to: "1-Deep",
   reason: "Outflow velocity jumped +186% over the last 14 days.",
 }
+
+// --- 공장(Factory) 단위 데이터 ---------------------------------------------
+// 각 공장은 동일한 대시보드 구조를 쓰되, SKU 재고량·출고량·빈도·창고 용량만 다르다.
+
+export type Factory = {
+  id: number
+  name: string // "울산 공장"
+  country: string // "한국" | "미국"
+  warehouseLabel: string // "창고 A-01"
+  aisle: string // "A-01"
+  rows: SkuRow[]
+  usedPallets: number
+  totalPallets: number
+  totalSkuCount: number
+  slottingAlert: SlottingAlert
+}
+
+// 공장별 데이터: 기준 SKU에서 재고/출고/빈도만 결정적으로 변형(내부 위치는 동일).
+// seed 접미사가 다르면 공장마다 다른 수량 분포가 나온다.
+function scaleRowsForFactory(base: SkuRow[], seed: string): SkuRow[] {
+  return base.map((row) => {
+    const invMul = 0.45 + seededIndex(row.skuId + seed + "i", 110) / 100 // 0.45–1.54
+    const outMul = 0.55 + seededIndex(row.skuId + seed + "o", 90) / 100 // 0.55–1.44
+    const frqMul = 0.55 + seededIndex(row.skuId + seed + "f", 95) / 100 // 0.55–1.49
+    return {
+      ...row,
+      inventory: Math.max(6, Math.round(row.inventory * invMul)),
+      dailyOutflow: Math.max(6, Math.round(row.dailyOutflow * outMul)),
+      dailyPickFreq: Math.max(2, Math.round(row.dailyPickFreq * frqMul)),
+    }
+  })
+}
+
+const FACTORY2_ROWS = scaleRowsForFactory(SKU_ROWS, "-f2")
+const FACTORY3_ROWS = scaleRowsForFactory(SKU_ROWS, "-f3")
+const FACTORY4_ROWS = scaleRowsForFactory(SKU_ROWS, "-f4")
+
+export const FACTORIES: Record<number, Factory> = {
+  1: {
+    id: 1,
+    name: "울산 공장",
+    country: "한국",
+    warehouseLabel: "창고 A-01",
+    aisle: "A-01",
+    rows: SKU_ROWS,
+    usedPallets: 8500,
+    totalPallets: 10000,
+    totalSkuCount: 342,
+    slottingAlert: SLOTTING_ALERT,
+  },
+  2: {
+    id: 2,
+    name: "Auburn 공장",
+    country: "미국",
+    warehouseLabel: "창고 A-02",
+    aisle: "A-02",
+    rows: FACTORY2_ROWS,
+    usedPallets: 6180,
+    totalPallets: 8000,
+    totalSkuCount: 268,
+    slottingAlert: {
+      skuId: "SHK-ABS-9014",
+      from: "5-Deep",
+      to: "1-Deep",
+      reason: "Auburn 공장 조립라인 증설로 최근 14일 출고 속도가 급증했습니다.",
+    },
+  },
+  3: {
+    id: 3,
+    name: "Alabama 공장",
+    country: "미국",
+    warehouseLabel: "창고 A-03",
+    aisle: "A-03",
+    rows: FACTORY3_ROWS,
+    usedPallets: 9240,
+    totalPallets: 11000,
+    totalSkuCount: 391,
+    slottingAlert: {
+      skuId: "SHK-ABS-9014",
+      from: "5-Deep",
+      to: "1-Deep",
+      reason: "Alabama 공장 SUV 라인 물량 증가로 최근 14일 출고 속도가 급증했습니다.",
+    },
+  },
+  4: {
+    id: 4,
+    name: "Slovakia 공장",
+    country: "유럽",
+    warehouseLabel: "창고 A-04",
+    aisle: "A-04",
+    rows: FACTORY4_ROWS,
+    usedPallets: 5020,
+    totalPallets: 7500,
+    totalSkuCount: 224,
+    slottingAlert: {
+      skuId: "SHK-ABS-9014",
+      from: "5-Deep",
+      to: "1-Deep",
+      reason: "Slovakia 공장 유럽 수출 물량 변동으로 최근 14일 출고 속도가 급증했습니다.",
+    },
+  },
+}
+
+export const FACTORY_LIST: Factory[] = [FACTORIES[1], FACTORIES[2], FACTORIES[3], FACTORIES[4]]
+
+export function getFactory(id: number): Factory | undefined {
+  return FACTORIES[id]
+}

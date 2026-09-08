@@ -1,13 +1,15 @@
 "use client"
 
+import { useMemo } from "react"
 import { Activity } from "lucide-react"
 import { useReslotting } from "@/components/reslotting-context"
-import { SKU_ROWS } from "@/lib/inventory-data"
-
-const nameById = new Map(SKU_ROWS.map((r) => [r.skuId, r.partName]))
 
 export function OrderStream() {
-  const { orderEvents, simDay, windowDays, setWindowDays } = useReslotting()
+  const { orderEvents, simDay, windowDays, setWindowDays, factory } = useReslotting()
+  const nameById = useMemo(
+    () => new Map(factory.rows.map((r) => [r.skuId, r.partName])),
+    [factory],
+  )
   const windowStart = simDay - windowDays
   // 최신순
   const events = [...orderEvents].reverse().slice(0, 40)

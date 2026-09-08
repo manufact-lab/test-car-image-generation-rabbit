@@ -8,7 +8,6 @@ export function OrderInjector() {
   const {
     rows,
     injectOrder,
-    injectRandomBatch,
     simDay,
     playing,
     togglePlay,
@@ -51,13 +50,6 @@ export function OrderInjector() {
       >
         <ChevronsRight className="size-3.5" />
         +1일
-      </button>
-
-      <button
-        onClick={injectRandomBatch}
-        className="rounded-md border border-border bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground transition-colors hover:bg-accent"
-      >
-        랜덤 주문 주입
       </button>
 
       {/* 특정 SKU 주문 주입 */}
