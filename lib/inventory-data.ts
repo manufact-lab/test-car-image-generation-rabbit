@@ -364,7 +364,8 @@ export const SLOTTING_ALERT: SlottingAlert = {
 
 export type Factory = {
   id: number
-  name: string // "1공장"
+  name: string // "울산 공장"
+  country: string // "한국" | "미국"
   warehouseLabel: string // "창고 A-01"
   aisle: string // "A-01"
   rows: SkuRow[]
@@ -394,7 +395,8 @@ const FACTORY2_ROWS = scaleRowsForFactory2(SKU_ROWS)
 export const FACTORIES: Record<number, Factory> = {
   1: {
     id: 1,
-    name: "1공장",
+    name: "울산 공장",
+    country: "한국",
     warehouseLabel: "창고 A-01",
     aisle: "A-01",
     rows: SKU_ROWS,
@@ -405,7 +407,8 @@ export const FACTORIES: Record<number, Factory> = {
   },
   2: {
     id: 2,
-    name: "2공장",
+    name: "Auburn 공장",
+    country: "미국",
     warehouseLabel: "창고 A-02",
     aisle: "A-02",
     rows: FACTORY2_ROWS,
@@ -416,7 +419,7 @@ export const FACTORIES: Record<number, Factory> = {
       skuId: "SHK-ABS-9014",
       from: "5-Deep",
       to: "1-Deep",
-      reason: "2공장 조립라인 증설로 최근 14일 출고 속도가 급증했습니다.",
+      reason: "Auburn 공장 조립라인 증설로 최근 14일 출고 속도가 급증했습니다.",
     },
   },
 }

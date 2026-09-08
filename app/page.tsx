@@ -46,7 +46,9 @@ export default function FactorySelectPage() {
                 </div>
 
                 <h2 className="mt-5 text-xl font-semibold text-foreground">{factory.name}</h2>
-                <p className="mt-0.5 text-sm text-muted-foreground">{factory.warehouseLabel}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {factory.country} · {factory.warehouseLabel}
+                </p>
 
                 <dl className="mt-5 grid grid-cols-2 gap-3">
                   <div className="rounded-lg border border-border bg-background/50 p-3">
