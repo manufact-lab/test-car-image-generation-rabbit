@@ -1,8 +1,7 @@
 import Link from "next/link"
-import { Boxes, ArrowRight, Package, Layers } from "lucide-react"
-import { FACTORY_LIST } from "@/lib/inventory-data"
+import { Boxes, ArrowRight, PackageSearch, Cpu, Clock } from "lucide-react"
 
-export default function FactorySelectPage() {
+export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="border-b border-border">
@@ -12,82 +11,68 @@ export default function FactorySelectPage() {
           </span>
           <div className="leading-tight">
             <p className="text-sm font-semibold text-foreground">ShuttleIQ</p>
-            <p className="text-xs text-muted-foreground">Warehouse Inventory Optimizer</p>
+            <p className="text-xs text-muted-foreground">AI Warehouse Platform</p>
           </div>
         </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 py-12 sm:px-6">
-        <div className="mb-8">
-          <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground">
-            공장 선택
+        <div className="mb-10 text-center">
+          <p className="text-sm font-medium uppercase tracking-widest text-primary">
+            AI 자동창고 플랫폼
+          </p>
+          <h1 className="mt-3 text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+            무엇을 시작할까요?
           </h1>
-          <p className="mt-2 text-pretty text-sm text-muted-foreground">
-            관리할 공장을 선택하세요. 각 공장은 동일한 최적화 대시보드를 사용하며 SKU 재고량과 보관량이 다릅니다.
+          <p className="mx-auto mt-3 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground">
+            4-Way 셔틀 자동창고를 위한 AI 기반 도구입니다. 재고 최적화로 슬로팅과 리슬롯팅을 관리하거나,
+            창고 시뮬레이션으로 설계안을 검증하세요.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          {FACTORY_LIST.map((factory) => {
-            const fillPct = Math.round(
-              (factory.usedPallets / factory.totalPallets) * 100,
-            )
-            return (
-              <Link
-                key={factory.id}
-                href={`/factory/${factory.id}`}
-                className="group rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/50 hover:bg-secondary/40"
-              >
-                <div className="flex items-start justify-between">
-                  <span className="flex size-14 items-center justify-center rounded-xl bg-primary/15 font-mono text-2xl font-bold text-primary">
-                    {factory.id}
-                  </span>
-                  <ArrowRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
-                </div>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          {/* AI 재고 최적화 — 활성 */}
+          <Link
+            href="/analysis"
+            className="group relative flex flex-col rounded-2xl border border-border bg-card p-7 transition-colors hover:border-primary/50 hover:bg-secondary/40"
+          >
+            <span className="flex size-12 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <PackageSearch className="size-6" aria-hidden="true" />
+            </span>
+            <h2 className="mt-5 text-xl font-semibold text-foreground">AI 재고 최적화</h2>
+            <p className="mt-2 flex-1 text-pretty text-sm leading-relaxed text-muted-foreground">
+              출하 데이터를 업로드해 클렌징·ABC 등급·생산-출하 GAP을 분석한 뒤, Cross-ABC 슬로팅과
+              이동 비용 기반 리슬롯팅까지 이어서 최적화합니다.
+            </p>
+            <span className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-primary">
+              데이터 분석부터 시작
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+            </span>
+          </Link>
 
-                <h2 className="mt-5 text-xl font-semibold text-foreground">{factory.name}</h2>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  {factory.country} · {factory.warehouseLabel}
-                </p>
-
-                <dl className="mt-5 grid grid-cols-2 gap-3">
-                  <div className="rounded-lg border border-border bg-background/50 p-3">
-                    <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Package className="size-3.5" aria-hidden="true" />
-                      관리 SKU
-                    </dt>
-                    <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-foreground">
-                      {factory.totalSkuCount.toLocaleString()}
-                    </dd>
-                  </div>
-                  <div className="rounded-lg border border-border bg-background/50 p-3">
-                    <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Layers className="size-3.5" aria-hidden="true" />
-                      충진율
-                    </dt>
-                    <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-foreground">
-                      {fillPct}%
-                    </dd>
-                  </div>
-                </dl>
-
-                <div className="mt-4">
-                  <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>
-                      {factory.usedPallets.toLocaleString()} /{" "}
-                      {factory.totalPallets.toLocaleString()} Pallets
-                    </span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all"
-                      style={{ width: `${fillPct}%` }}
-                    />
-                  </div>
-                </div>
-              </Link>
-            )
-          })}
+          {/* AI 자동창고 Simulation — 준비 중 */}
+          <div
+            className="relative flex flex-col rounded-2xl border border-dashed border-border bg-secondary/20 p-7"
+            aria-disabled="true"
+          >
+            <span className="absolute right-5 top-5 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              <Clock className="size-3" aria-hidden="true" />
+              준비 중
+            </span>
+            <span className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+              <Cpu className="size-6" aria-hidden="true" />
+            </span>
+            <h2 className="mt-5 text-xl font-semibold text-muted-foreground">
+              AI 자동창고 Simulation
+            </h2>
+            <p className="mt-2 flex-1 text-pretty text-sm leading-relaxed text-muted-foreground/80">
+              통로·레인 구성과 SKU 배치를 가상으로 돌려 처리량과 병목을 예측하는 시뮬레이션입니다.
+              곧 제공될 예정입니다.
+            </p>
+            <span className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground/60">
+              곧 공개
+            </span>
+          </div>
         </div>
       </main>
     </div>
