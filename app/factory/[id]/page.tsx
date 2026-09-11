@@ -8,14 +8,32 @@ export function generateStaticParams() {
   return FACTORY_LIST.map((f) => ({ id: String(f.id) }))
 }
 
+function numParam(v: string | string[] | undefined): number | undefined {
+  const s = Array.isArray(v) ? v[0] : v
+  const n = s ? Number(s) : NaN
+  return Number.isFinite(n) ? n : undefined
+}
+
 export default async function FactoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { id } = await params
+  const sp = await searchParams
   const factory = getFactory(Number(id))
   if (!factory) notFound()
+
+  const optimized = sp.opt === "1"
+  const spec = {
+    aisleCount: numParam(sp.aisles),
+    baysPerRow: numParam(sp.bays),
+    levels: numParam(sp.levels),
+    laneDepth: numParam(sp.depth),
+    palletCapacity: numParam(sp.pallet),
+  }
 
   return (
     <ReslottingProvider factory={factory}>
@@ -33,7 +51,7 @@ export default async function FactoryPage({
             </p>
           </div>
 
-          <DashboardTabs />
+          <DashboardTabs optimized={optimized} spec={spec} />
         </main>
       </div>
     </ReslottingProvider>

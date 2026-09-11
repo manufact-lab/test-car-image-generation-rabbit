@@ -463,11 +463,11 @@ export type WarehouseSpec = {
 }
 
 export const DEFAULT_WAREHOUSE_SPEC: WarehouseSpec = {
-  aisleCount: 6,
+  aisleCount: 14,
   wallAdjacency: "both",
-  baysPerRow: 8,
-  levels: 4,
-  laneDepth: 5,
+  baysPerRow: 12,
+  levels: 5,
+  laneDepth: 6,
   palletCapacity: 48,
 }
 

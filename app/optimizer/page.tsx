@@ -1,8 +1,21 @@
 import Link from "next/link"
-import { Boxes, ArrowRight, ArrowLeft, Package, Layers } from "lucide-react"
+import { Boxes, ArrowRight, ArrowLeft, Package, Layers, Sparkles } from "lucide-react"
 import { FACTORY_LIST } from "@/lib/inventory-data"
 
-export default function FactorySelectPage() {
+export default async function FactorySelectPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const sp = await searchParams
+  const optimized = sp.opt === "1"
+  const keys = ["opt", "aisles", "bays", "levels", "depth", "pallet"] as const
+  const qs = keys
+    .map((k) => (typeof sp[k] === "string" ? `${k}=${sp[k]}` : ""))
+    .filter(Boolean)
+    .join("&")
+  const suffix = qs ? `?${qs}` : ""
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="border-b border-border">
@@ -33,6 +46,16 @@ export default function FactorySelectPage() {
           <p className="mt-2 text-pretty text-sm text-muted-foreground">
             관리할 공장을 선택하세요. 각 공장은 동일한 최적화 대시보드를 사용하며 SKU 재고량과 보관량이 다릅니다.
           </p>
+          {optimized && (
+            <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-primary/30 bg-primary/5 p-4">
+              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <Sparkles className="size-4" aria-hidden="true" />
+              </span>
+              <p className="text-pretty text-sm leading-relaxed text-foreground">
+                분석 기반 최적 배치가 준비되었습니다. 공장을 선택하면 해당 배치가 대시보드 초기 상태로 적용됩니다.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -43,7 +66,7 @@ export default function FactorySelectPage() {
             return (
               <Link
                 key={factory.id}
-                href={`/factory/${factory.id}`}
+                href={`/factory/${factory.id}${suffix}`}
                 className="group rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/50 hover:bg-secondary/40"
               >
                 <div className="flex items-start justify-between">

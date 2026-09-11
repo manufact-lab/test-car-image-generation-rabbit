@@ -11,7 +11,9 @@ import { OrderStream } from "@/components/order-stream"
 import { ChangeHistoryLog } from "@/components/change-history-log"
 import { SlottingAlert } from "@/components/slotting-alert"
 import { WarehouseSpecPlanner } from "@/components/warehouse-spec-planner"
+import { PlacementBanner } from "@/components/placement-banner"
 import { useReslotting } from "@/components/reslotting-context"
+import type { WarehouseSpec } from "@/lib/inventory-data"
 
 type TabKey = "dashboard" | "queue" | "history" | "design"
 
@@ -22,7 +24,13 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "design", label: "창고 설계" },
 ]
 
-export function DashboardTabs() {
+export function DashboardTabs({
+  optimized = false,
+  spec,
+}: {
+  optimized?: boolean
+  spec?: Partial<WarehouseSpec>
+}) {
   const [tab, setTab] = useState<TabKey>("dashboard")
   const { pendingCount } = useReslotting()
 
@@ -70,6 +78,7 @@ export function DashboardTabs() {
 
       {tab === "dashboard" && (
         <div>
+          {optimized && <PlacementBanner spec={spec} />}
           <OverviewCards />
           <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
             <div className="min-w-0">
