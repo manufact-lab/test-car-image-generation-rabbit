@@ -14,8 +14,6 @@ import {
 import {
   PROCESSING_STEPS,
   CLEANSING_TOTAL,
-  RAW_LINE_COUNT,
-  KEPT_LINE_COUNT,
 } from "@/lib/analysis-data"
 import { CleansingSection } from "./cleansing-section"
 import { DailyTrendSection } from "./daily-trend-section"
@@ -254,7 +252,7 @@ export function AnalysisFlow() {
       <div className="mt-5 rounded-xl border border-border bg-secondary/30 p-4">
         <p className="text-xs font-semibold text-foreground">분석 리포트 구성</p>
         <ul className="mt-2 grid grid-cols-1 gap-1.5 text-xs text-muted-foreground sm:grid-cols-2">
-          <li>· 데이터 클렌징 개요 ({RAW_LINE_COUNT}라인 → {KEPT_LINE_COUNT}라인)</li>
+          <li>· 데이터 클린징</li>
           <li>· 일자별 SKU / 출하 건수 추이</li>
           <li>· SKU별 ABC 분석 (파레토)</li>
           <li>· 등급별 출하일수 분석</li>
