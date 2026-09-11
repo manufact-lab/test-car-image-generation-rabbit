@@ -213,6 +213,55 @@ export const LINES_PER_SKU: { groups: LineGroup[]; total: { sku: number; cnt: nu
 export const MULTI_LINE_PCT = 53.4
 export const A_MULTI_LINE_SKU = 23
 
+// ── 2.8 필요 보관량 산정 ───────────────────────────────────────────────────
+// 분석된 물량(일평균 3,733건 / 216 SKU, 777 SKU 재고)을 기준으로 기준 보관
+// 소요를 산정하고, 4-way shuttle 딥레인 특성상 발생하는 물량 재배치(허니콤)
+// 손실과 수요 변동 대응 여유율을 더해 최종 필요 보관량을 도출한다.
+export type StorageBuildupStep = {
+  key: string
+  label: string
+  desc: string
+  value: number // 이 단계에서 더해지는 PLT
+  kind: "base" | "buffer" | "shuffle"
+}
+
+export const STORAGE_SIZING = {
+  basePlt: 3720, // 기준 보관 소요 (현 물량 · 평균 재고일수 기준)
+  bufferPct: 12, // 수요 변동 대응 안전 재고 여유율
+  shufflePct: 8, // 4-way shuttle 재배치(허니콤) 여유
+  requiredPlt: 4500, // 최종 필요 보관량 (이상)
+}
+
+// 기준 → +여유율 → +셔틀 재배치 순으로 쌓이는 구성 (합계 = requiredPlt)
+export const STORAGE_BUILDUP: StorageBuildupStep[] = [
+  {
+    key: "base",
+    label: "기준 보관 소요",
+    desc: "777 SKU · 일평균 출하 3,733건 · 평균 재고일수 기준",
+    value: 3720,
+    kind: "base",
+  },
+  {
+    key: "buffer",
+    label: "수요 변동 여유율 +12%",
+    desc: "일 출하량 변동(최대 4,015 / 최소 1,268) 대응 안전 재고",
+    value: 446,
+    kind: "buffer",
+  },
+  {
+    key: "shuffle",
+    label: "4-way shuttle 재배치 +8%",
+    desc: "딥레인 허니콤 손실 및 리슬롯팅 이동 공간 확보",
+    value: 334,
+    kind: "shuffle",
+  },
+]
+
+// 기준 대비 증가율 (%) = (필요 - 기준) / 기준
+export const STORAGE_INCREASE_PCT = Math.round(
+  ((STORAGE_SIZING.requiredPlt - STORAGE_SIZING.basePlt) / STORAGE_SIZING.basePlt) * 100,
+)
+
 // 처리 단계(업로드 후 클렌징 애니메이션에 사용)
 export const PROCESSING_STEPS = [
   "엑셀 파일 파싱 중",
