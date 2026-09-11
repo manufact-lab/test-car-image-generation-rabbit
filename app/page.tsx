@@ -33,7 +33,7 @@ export default function HomePage() {
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           {/* AI 재고 최적화 — 활성 */}
           <Link
-            href="/optimizer"
+            href="/analysis"
             className="group relative flex flex-col rounded-2xl border border-border bg-card p-7 transition-colors hover:border-primary/50 hover:bg-secondary/40"
           >
             <span className="flex size-12 items-center justify-center rounded-xl bg-primary/15 text-primary">
@@ -41,11 +41,11 @@ export default function HomePage() {
             </span>
             <h2 className="mt-5 text-xl font-semibold text-foreground">AI 재고 최적화</h2>
             <p className="mt-2 flex-1 text-pretty text-sm leading-relaxed text-muted-foreground">
-              SKU별 재고량·회전율을 분석해 Cross-ABC 슬로팅 등급을 산출하고, 이동 비용 기반 리슬롯팅
-              후보를 추천합니다.
+              출하 데이터를 업로드해 클렌징·ABC 등급·생산-출하 GAP을 분석한 뒤, Cross-ABC 슬로팅과
+              이동 비용 기반 리슬롯팅까지 이어서 최적화합니다.
             </p>
             <span className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-primary">
-              최적화 대시보드 열기
+              데이터 분석부터 시작
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </span>
           </Link>
