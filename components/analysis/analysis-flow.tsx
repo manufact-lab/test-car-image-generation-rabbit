@@ -24,6 +24,7 @@ import { ShippingDaysSection } from "./shipping-days-section"
 import { GapSection } from "./gap-section"
 import { GapByGradeSection } from "./gap-by-grade-section"
 import { LinesPerSkuSection } from "./lines-per-sku-section"
+import { StorageSizingSection } from "./storage-sizing-section"
 
 type Phase = "idle" | "processing" | "done"
 
@@ -102,10 +103,10 @@ export function AnalysisFlow() {
               다시 업로드
             </button>
             <Link
-              href="/optimizer"
+              href="/analysis/layout"
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
             >
-              최적화 대시보드로 이동
+              창고 배치 설계로 이동
               <ArrowRight className="size-3.5" aria-hidden="true" />
             </Link>
           </div>
@@ -119,17 +120,18 @@ export function AnalysisFlow() {
         <GapSection />
         <GapByGradeSection />
         <LinesPerSkuSection />
+        <StorageSizingSection />
 
         {/* 하단 CTA */}
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-6 text-center">
           <p className="text-sm font-medium text-foreground">
-            분석 결과를 바탕으로 창고 슬로팅을 최적화할 준비가 되었습니다.
+            분석 결과를 바탕으로 기존 창고의 4-way shuttle 배치를 설계할 준비가 되었습니다.
           </p>
           <Link
-            href="/optimizer"
+            href="/analysis/layout"
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
-            AI 재고 최적화 대시보드 열기
+            창고 배치 설계 시작
             <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
         </div>
@@ -258,6 +260,7 @@ export function AnalysisFlow() {
           <li>· 등급별 출하일수 분석</li>
           <li>· 생산-출하일자 GAP 분석</li>
           <li>· 등급별 GAP · 출하 라인 수 분석</li>
+          <li>· 필요 보관량 산정 (PLT)</li>
         </ul>
       </div>
     </div>
