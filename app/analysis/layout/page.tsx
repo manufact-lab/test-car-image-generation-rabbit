@@ -13,7 +13,7 @@ export default function LayoutPage() {
             </span>
             <div className="leading-tight">
               <p className="text-sm font-semibold text-foreground">ShuttleIQ</p>
-              <p className="text-xs text-muted-foreground">창고 배치 설계</p>
+              <p className="text-xs text-muted-foreground">브라운필드 배치 설계</p>
             </div>
           </Link>
           <Link
@@ -29,14 +29,14 @@ export default function LayoutPage() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         <div className="mb-6">
           <p className="text-sm font-medium uppercase tracking-widest text-primary">
-            3. 창고 배치 설계
+            3. 브라운필드
           </p>
           <h1 className="mt-2 text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             브라운필드 4-way shuttle 배치
           </h1>
           <p className="mt-2 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground">
-            기존 창고의 실제 랙 규격을 입력하면 분석 결과에 맞춰 등급별 최적 배치를 산출합니다. 산출된 배치는
-            최적화 대시보드의 초기 상태로 반영됩니다.
+            기존 창고의 실제 랙 규격을 입력하면 분석 결과에 맞춰 등급별 최적 배치를 산출합니다. 최적 배치를
+            적용한 뒤 다음 단계에서 이 배치를 적용할 공장을 선택합니다.
           </p>
         </div>
 
