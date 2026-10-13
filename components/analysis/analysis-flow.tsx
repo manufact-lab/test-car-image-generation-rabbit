@@ -183,8 +183,8 @@ export function AnalysisFlow() {
         </span>
         <h2 className="mt-5 text-lg font-semibold text-foreground">출하 데이터 업로드</h2>
         <p className="mt-2 max-w-md text-pretty text-sm leading-relaxed text-muted-foreground">
-          공장 출하 이력이 담긴 엑셀(.xlsx / .csv) 파일을 업로드하면, 데이터 클렌징부터 ABC 등급 산출,
-          생산-출하 GAP까지 창고 최적화에 필요한 분석을 자동으로 수행합니다.
+          공장 출하 이력이 담긴 엑셀(.xlsx / .csv) 파일을 업로드하면, 창고 최적화에 필요한
+          데이터 분석을 자동으로 진행합니다.
         </p>
 
         <input
