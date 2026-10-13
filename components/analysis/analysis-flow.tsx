@@ -208,7 +208,7 @@ export function AnalysisFlow() {
             className="inline-flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-primary/50 hover:bg-secondary/40"
           >
             <Sparkles className="size-4 text-primary" aria-hidden="true" />
-            샘플 데이터로 분석
+            고객 데이터 입력
           </button>
         </div>
         <p className="mt-4 text-xs text-muted-foreground/70">
