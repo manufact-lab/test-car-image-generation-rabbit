@@ -14,8 +14,6 @@ import {
 import {
   PROCESSING_STEPS,
   CLEANSING_TOTAL,
-  RAW_LINE_COUNT,
-  KEPT_LINE_COUNT,
 } from "@/lib/analysis-data"
 import { CleansingSection } from "./cleansing-section"
 import { DailyTrendSection } from "./daily-trend-section"
@@ -60,7 +58,7 @@ export function AnalysisFlow() {
 
   const onFile = useCallback(
     (file: File | undefined) => {
-      setFileName(file ? file.name : "sample_출하데이터_2026Q1.xlsx")
+      setFileName(file ? file.name : "서연이화_울산공장_출하데이터.xlsx")
       runProcessing()
     },
     [runProcessing],
@@ -106,7 +104,7 @@ export function AnalysisFlow() {
               href="/analysis/layout"
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
             >
-              창고 배치 설계로 이동
+              브라운필드 배치 설계로 이동
               <ArrowRight className="size-3.5" aria-hidden="true" />
             </Link>
           </div>
@@ -125,13 +123,13 @@ export function AnalysisFlow() {
         {/* 하단 CTA */}
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-6 text-center">
           <p className="text-sm font-medium text-foreground">
-            분석 결과를 바탕으로 기존 창고의 4-way shuttle 배치를 설계할 준비가 되었습니다.
+            분석 결과를 바탕으로 기존 창고(브라운필드)의 4-way shuttle 배치를 설계할 준비가 되었습니다.
           </p>
           <Link
             href="/analysis/layout"
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
-            창고 배치 설계 시작
+            브라운필드 배치 설계 시작
             <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
         </div>
@@ -145,44 +143,12 @@ export function AnalysisFlow() {
         <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
           <Loader2 className="size-7 animate-spin" aria-hidden="true" />
         </span>
-        <p className="mt-4 text-base font-semibold text-foreground">데이터 분석 중</p>
+        <p className="mt-4 text-base font-semibold text-foreground" role="status">
+          데이터 분석 진행 중
+        </p>
         <p className="mt-1 text-sm text-muted-foreground">
           <span className="font-mono">{fileName}</span>
         </p>
-
-        <ol className="mt-6 w-full space-y-2.5">
-          {PROCESSING_STEPS.map((step, i) => {
-            const state = i < stepIdx ? "done" : i === stepIdx ? "active" : "todo"
-            return (
-              <li key={step} className="flex items-center gap-3">
-                <span
-                  className={`flex size-5 shrink-0 items-center justify-center rounded-full text-xs ${
-                    state === "done"
-                      ? "bg-success/15 text-success"
-                      : state === "active"
-                        ? "bg-primary/15 text-primary"
-                        : "bg-secondary text-muted-foreground/50"
-                  }`}
-                >
-                  {state === "done" ? (
-                    <CheckCircle2 className="size-3.5" aria-hidden="true" />
-                  ) : state === "active" ? (
-                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                  ) : (
-                    i + 1
-                  )}
-                </span>
-                <span
-                  className={`text-sm ${
-                    state === "todo" ? "text-muted-foreground/50" : "text-foreground"
-                  }`}
-                >
-                  {step}
-                </span>
-              </li>
-            )
-          })}
-        </ol>
 
         <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
           <div
@@ -217,8 +183,8 @@ export function AnalysisFlow() {
         </span>
         <h2 className="mt-5 text-lg font-semibold text-foreground">출하 데이터 업로드</h2>
         <p className="mt-2 max-w-md text-pretty text-sm leading-relaxed text-muted-foreground">
-          공장 출하 이력이 담긴 엑셀(.xlsx / .csv) 파일을 업로드하면, 데이터 클렌징부터 ABC 등급 산출,
-          생산-출하 GAP까지 창고 최적화에 필요한 분석을 자동으로 수행합니다.
+          공장 출하 이력이 담긴 엑셀(.xlsx / .csv) 파일을 업로드하면, 창고 최적화에 필요한
+          데이터 분석을 자동으로 진행합니다.
         </p>
 
         <input
@@ -242,7 +208,7 @@ export function AnalysisFlow() {
             className="inline-flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-primary/50 hover:bg-secondary/40"
           >
             <Sparkles className="size-4 text-primary" aria-hidden="true" />
-            샘플 데이터로 분석
+            고객 데이터 입력
           </button>
         </div>
         <p className="mt-4 text-xs text-muted-foreground/70">
@@ -254,7 +220,7 @@ export function AnalysisFlow() {
       <div className="mt-5 rounded-xl border border-border bg-secondary/30 p-4">
         <p className="text-xs font-semibold text-foreground">분석 리포트 구성</p>
         <ul className="mt-2 grid grid-cols-1 gap-1.5 text-xs text-muted-foreground sm:grid-cols-2">
-          <li>· 데이터 클렌징 개요 ({RAW_LINE_COUNT}라인 → {KEPT_LINE_COUNT}라인)</li>
+          <li>· 데이터 클린징</li>
           <li>· 일자별 SKU / 출하 건수 추이</li>
           <li>· SKU별 ABC 분석 (파레토)</li>
           <li>· 등급별 출하일수 분석</li>

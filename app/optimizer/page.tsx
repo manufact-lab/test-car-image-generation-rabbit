@@ -30,21 +30,27 @@ export default async function FactorySelectPage({
             </div>
           </Link>
           <Link
-            href="/"
+            href={optimized ? "/analysis/layout" : "/"}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
           >
-            <ArrowLeft className="size-3.5" aria-hidden="true" />홈
+            <ArrowLeft className="size-3.5" aria-hidden="true" />
+            {optimized ? "브라운필드로" : "홈"}
           </Link>
         </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 py-12 sm:px-6">
         <div className="mb-8">
-          <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground">
-            공장 선택
+          {optimized && (
+            <p className="text-sm font-medium uppercase tracking-widest text-primary">4. 공장 적용</p>
+          )}
+          <h1 className="mt-2 text-balance text-3xl font-semibold tracking-tight text-foreground">
+            {optimized ? "최적화할 공장 선택" : "공장 선택"}
           </h1>
           <p className="mt-2 text-pretty text-sm text-muted-foreground">
-            관리할 공장을 선택하세요. 각 공장은 동일한 최적화 대시보드를 사용하며 SKU 재고량과 보관량이 다릅니다.
+            {optimized
+              ? "브라운필드 최적 배치를 적용할 공장을 선택하세요. 선택한 공장의 대시보드가 해당 배치로 세팅됩니다."
+              : "관리할 공장을 선택하세요. 각 공장은 동일한 최적화 대시보드를 사용하며 SKU 재고량과 보관량이 다릅니다."}
           </p>
           {optimized && (
             <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-primary/30 bg-primary/5 p-4">

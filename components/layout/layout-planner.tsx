@@ -124,7 +124,7 @@ export function LayoutPlanner() {
           <p className="mt-1 text-pretty text-xs leading-relaxed text-muted-foreground">
             이미 설치된 4-way shuttle 랙의 실제 규격(통로·베이·단·레인 깊이)을 담당자가 입력하면,
             앞서 분석한 출하 데이터의 등급 구성에 맞춰 어느 등급을 어느 위치에 배치해야 하는지 산출합니다.
-            산출된 초기 배치는 대시보드에 반영되어 이후 주문 변동에 따라 계속 재최적화됩니다.
+            산출된 초기 배치는 공장 적용 단계에서 선택한 공장의 대시보드에 반영됩니다.
           </p>
         </div>
       </div>
@@ -293,18 +293,18 @@ export function LayoutPlanner() {
       {/* CTA */}
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-6 text-center">
         <p className="text-sm font-medium text-foreground">
-          입력한 창고 규격과 분석 기반 배치를 대시보드에 적용합니다.
+          입력한 창고 규격과 분석 기반 최적 배치를 확정합니다.
         </p>
         <p className="max-w-xl text-xs text-muted-foreground">
-          대시보드는 이 초기 배치로 세팅된 뒤, 주문이 유입되어 등급이 바뀌면 자동으로 리슬롯팅 후보를 산출해
-          계속 최적화합니다.
+          다음 단계(공장 적용)에서 이 배치를 적용할 공장을 선택하면, 해당 공장 대시보드가 이 초기 배치로
+          세팅되고 이후 주문 변동에 따라 계속 재최적화됩니다.
         </p>
         {cap.ok ? (
           <Link
             href={dashUrl}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
-            최적 배치 적용 · 대시보드 열기
+            최적 배치 적용 · 공장 적용으로
             <ArrowRight className="size-4" aria-hidden />
           </Link>
         ) : (
