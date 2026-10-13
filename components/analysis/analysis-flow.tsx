@@ -143,44 +143,12 @@ export function AnalysisFlow() {
         <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
           <Loader2 className="size-7 animate-spin" aria-hidden="true" />
         </span>
-        <p className="mt-4 text-base font-semibold text-foreground">데이터 분석 중</p>
+        <p className="mt-4 text-base font-semibold text-foreground" role="status">
+          데이터 분석 진행 중
+        </p>
         <p className="mt-1 text-sm text-muted-foreground">
           <span className="font-mono">{fileName}</span>
         </p>
-
-        <ol className="mt-6 w-full space-y-2.5">
-          {PROCESSING_STEPS.map((step, i) => {
-            const state = i < stepIdx ? "done" : i === stepIdx ? "active" : "todo"
-            return (
-              <li key={step} className="flex items-center gap-3">
-                <span
-                  className={`flex size-5 shrink-0 items-center justify-center rounded-full text-xs ${
-                    state === "done"
-                      ? "bg-success/15 text-success"
-                      : state === "active"
-                        ? "bg-primary/15 text-primary"
-                        : "bg-secondary text-muted-foreground/50"
-                  }`}
-                >
-                  {state === "done" ? (
-                    <CheckCircle2 className="size-3.5" aria-hidden="true" />
-                  ) : state === "active" ? (
-                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                  ) : (
-                    i + 1
-                  )}
-                </span>
-                <span
-                  className={`text-sm ${
-                    state === "todo" ? "text-muted-foreground/50" : "text-foreground"
-                  }`}
-                >
-                  {step}
-                </span>
-              </li>
-            )
-          })}
-        </ol>
 
         <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
           <div
