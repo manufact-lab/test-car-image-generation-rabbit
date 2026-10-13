@@ -58,7 +58,7 @@ export function AnalysisFlow() {
 
   const onFile = useCallback(
     (file: File | undefined) => {
-      setFileName(file ? file.name : "sample_출하데이터_2026Q1.xlsx")
+      setFileName(file ? file.name : "서연이화_울산공장_출하데이터.xlsx")
       runProcessing()
     },
     [runProcessing],
