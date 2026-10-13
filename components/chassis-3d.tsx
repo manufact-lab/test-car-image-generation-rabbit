@@ -2,7 +2,7 @@
 
 import { useRef, useMemo, Suspense } from "react"
 import { Canvas } from "@react-three/fiber"
-import { OrbitControls, Environment, ContactShadows, Html } from "@react-three/drei"
+import { OrbitControls, Environment, ContactShadows, Html, Lightformer } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
 import * as THREE from "three"
 import type { Mesh, Group, Shape } from "three"
@@ -187,7 +187,13 @@ export function Chassis3D({ doorTrim }: { doorTrim: DoorTrim }) {
           <ambientLight intensity={0.6} />
           <directionalLight position={[5, 8, 5]} intensity={1.4} castShadow />
           <directionalLight position={[-5, 4, -5]} intensity={0.5} />
-          <Environment preset="city" />
+          {/* In-scene environment (no remote HDR fetch) for metallic reflections */}
+          <Environment resolution={256}>
+            <Lightformer intensity={1.2} position={[0, 5, -2]} scale={[10, 5, 1]} color="#ffffff" />
+            <Lightformer intensity={0.6} position={[-5, 1, 3]} scale={[4, 4, 1]} color="#c7d2e0" />
+            <Lightformer intensity={0.6} position={[5, 1, 3]} scale={[4, 4, 1]} color="#c7d2e0" />
+            <Lightformer intensity={0.4} position={[0, -3, 0]} scale={[10, 5, 1]} color="#8b9098" />
+          </Environment>
           <Car doorTrim={doorTrim} />
           <ContactShadows position={[0, 0, 0]} opacity={0.4} scale={12} blur={2.4} far={4} />
           <OrbitControls
