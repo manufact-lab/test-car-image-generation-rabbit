@@ -1,28 +1,16 @@
 "use client"
 
 import { useState, useRef, useCallback } from "react"
-import Link from "next/link"
 import {
   Upload,
   FileSpreadsheet,
   Loader2,
-  CheckCircle2,
-  ArrowRight,
-  RotateCcw,
   Sparkles,
 } from "lucide-react"
 import {
   PROCESSING_STEPS,
-  CLEANSING_TOTAL,
 } from "@/lib/analysis-data"
-import { CleansingSection } from "./cleansing-section"
-import { DailyTrendSection } from "./daily-trend-section"
-import { AbcSection } from "./abc-section"
-import { ShippingDaysSection } from "./shipping-days-section"
-import { GapSection } from "./gap-section"
-import { GapByGradeSection } from "./gap-by-grade-section"
-import { LinesPerSkuSection } from "./lines-per-sku-section"
-import { StorageSizingSection } from "./storage-sizing-section"
+import { AnalysisReview } from "./analysis-review"
 
 export type AnalysisPhase = "idle" | "processing" | "done"
 
@@ -84,68 +72,7 @@ export function AnalysisFlow({
   }, [])
 
   if (phase === "done") {
-    return (
-      <div className="flex flex-col gap-5">
-        {/* 리포트 헤더 */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-5">
-          <div className="flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-success/15 text-success">
-              <CheckCircle2 className="size-5" aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-foreground">데이터 분석 완료</p>
-              <p className="text-xs text-muted-foreground">
-                <span className="font-mono">{fileName}</span> · 원본{" "}
-                {CLEANSING_TOTAL.raw.toLocaleString()}건 → 분석 대상{" "}
-                <span className="font-medium text-primary">
-                  {CLEANSING_TOTAL.kept.toLocaleString()}건
-                </span>
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={reset}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-            >
-              <RotateCcw className="size-3.5" aria-hidden="true" />
-              다시 업로드
-            </button>
-            <Link
-              href="/analysis/layout"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              브라운필드 배치 설계로 이동
-              <ArrowRight className="size-3.5" aria-hidden="true" />
-            </Link>
-          </div>
-        </div>
-
-        {/* 분석 섹션 */}
-        <CleansingSection />
-        <DailyTrendSection />
-        <AbcSection />
-        <ShippingDaysSection />
-        <GapSection />
-        <GapByGradeSection />
-        <LinesPerSkuSection />
-        <StorageSizingSection />
-
-        {/* 하단 CTA */}
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-6 text-center">
-          <p className="text-sm font-medium text-foreground">
-            분석 결과를 바탕으로 기존 창고(브라운필드)의 4-way shuttle 배치를 설계할 준비가 되었습니다.
-          </p>
-          <Link
-            href="/analysis/layout"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            브라운필드 배치 설계 시작
-            <ArrowRight className="size-4" aria-hidden="true" />
-          </Link>
-        </div>
-      </div>
-    )
+    return <AnalysisReview fileName={fileName} onReset={reset} />
   }
 
   if (phase === "processing") {
