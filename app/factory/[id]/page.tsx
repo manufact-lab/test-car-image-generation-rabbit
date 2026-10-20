@@ -3,6 +3,7 @@ import { getFactory, FACTORY_LIST } from "@/lib/inventory-data"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardTabs } from "@/components/dashboard-tabs"
 import { ReslottingProvider } from "@/components/reslotting-context"
+import { WorkflowStepper } from "@/components/workflow-stepper"
 
 export function generateStaticParams() {
   return FACTORY_LIST.map((f) => ({ id: String(f.id) }))
@@ -39,6 +40,7 @@ export default async function FactoryPage({
     <ReslottingProvider factory={factory}>
       <div className="min-h-screen bg-background">
         <DashboardHeader factory={factory} />
+        <WorkflowStepper current={5} />
 
         <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
           <div className="mb-6">

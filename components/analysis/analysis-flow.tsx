@@ -24,10 +24,21 @@ import { GapByGradeSection } from "./gap-by-grade-section"
 import { LinesPerSkuSection } from "./lines-per-sku-section"
 import { StorageSizingSection } from "./storage-sizing-section"
 
-type Phase = "idle" | "processing" | "done"
+export type AnalysisPhase = "idle" | "processing" | "done"
 
-export function AnalysisFlow() {
-  const [phase, setPhase] = useState<Phase>("idle")
+export function AnalysisFlow({
+  onPhaseChange,
+}: {
+  onPhaseChange?: (phase: AnalysisPhase) => void
+}) {
+  const [phase, setPhaseState] = useState<AnalysisPhase>("idle")
+  const setPhase = useCallback(
+    (next: AnalysisPhase) => {
+      setPhaseState(next)
+      onPhaseChange?.(next)
+    },
+    [onPhaseChange],
+  )
   const [fileName, setFileName] = useState<string | null>(null)
   const [stepIdx, setStepIdx] = useState(0)
   const [dragging, setDragging] = useState(false)
