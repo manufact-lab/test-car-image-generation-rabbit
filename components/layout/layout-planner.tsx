@@ -46,6 +46,28 @@ const NUM_FIELDS: NumField[] = [
   { key: "palletCapacity", label: "팔레트당 적재량", hint: "셀 용량 환산 기준", min: 12, max: 120, step: 4, unit: "EA" },
 ]
 
+const PLACEMENT_GUIDE: Record<
+  PlacementGrade,
+  { dailyShip: string; carriers: string; carrierNote?: string; placement: string }
+> = {
+  A: {
+    dailyShip: "54",
+    carriers: "약 11개",
+    placement: "리프트·포트에 가까운 열, 5~7 Deep 레인 1~2개를 통째로. 여러 통로·단에 분산",
+  },
+  B: {
+    dailyShip: "7.5",
+    carriers: "약 2개",
+    placement: "중간 열, 2~3 Deep 레인",
+  },
+  C: {
+    dailyShip: "0.6",
+    carriers: "1개",
+    carrierNote: "재고 없는 날이 대부분",
+    placement: "먼 열과 상·하단, 1 Deep 칸이나 얇은 레인. 프리 로케이션",
+  },
+}
+
 function SliderRow({
   field,
   value,
@@ -198,7 +220,7 @@ export function LayoutPlanner() {
               <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3">
                 <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
                 <p className="text-xs leading-relaxed text-foreground">
-                  용량 부족 · 필요 보관량 대비{" "}
+                  용량 부족 · 필요 보관��� 대비{" "}
                   <span className="font-semibold text-destructive">
                     {cap.surplus.toLocaleString()} PLT
                   </span>{" "}
@@ -236,30 +258,62 @@ export function LayoutPlanner() {
 
       {/* 분석 기반 최적 배치 결과 */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-foreground">등급별 배치 결과</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {ZONE_PLAN.map((z) => (
-            <div key={z.grade} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
-              <span
-                className="inline-flex w-fit items-center rounded-md px-2 py-1 text-xs font-bold text-primary-foreground"
-                style={{ backgroundColor: GRADE_COLOR[z.grade] }}
-              >
-                {GRADE_LABEL[z.grade]}
-              </span>
-              <div className="flex items-baseline gap-1">
-                <span className="font-mono text-3xl font-semibold tabular-nums text-foreground">
-                  {z.shipmentPct}
-                </span>
-                <span className="text-sm text-muted-foreground">% 출하</span>
-                <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
-                  {z.sku} SKU
-                </span>
-              </div>
-              <p className="text-pretty text-sm leading-relaxed text-foreground">
-                {z.depthBand} · {z.level}에 배치합니다.
-              </p>
-            </div>
-          ))}
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">등급별 배치 결과</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            설계 기준 데이터로 등급별 SKU당 필요 캐리어(1일치, FL 기준)를 보면 이렇습니다.
+          </p>
+        </div>
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="bg-secondary/60 text-xs text-muted-foreground">
+              <tr>
+                <th scope="col" className="px-4 py-3 font-medium">등급</th>
+                <th scope="col" className="px-4 py-3 font-medium">SKU당 일 출하</th>
+                <th scope="col" className="px-4 py-3 font-medium">SKU당 캐리어 (1일치)</th>
+                <th scope="col" className="px-4 py-3 font-medium">추천 배치</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {ZONE_PLAN.map((z) => {
+                const p = PLACEMENT_GUIDE[z.grade]
+                return (
+                  <tr key={z.grade} className="align-top">
+                    <th scope="row" className="whitespace-nowrap px-4 py-3.5 font-normal">
+                      <span className="inline-flex items-center gap-2">
+                        <span
+                          className="inline-flex size-6 items-center justify-center rounded-md text-xs font-bold text-primary-foreground"
+                          style={{ backgroundColor: GRADE_COLOR[z.grade] }}
+                          aria-label={GRADE_LABEL[z.grade]}
+                        >
+                          {z.grade}
+                        </span>
+                        <span className="font-mono tabular-nums text-muted-foreground">
+                          {z.sku} SKU
+                        </span>
+                      </span>
+                    </th>
+                    <td className="whitespace-nowrap px-4 py-3.5">
+                      <span className="font-mono text-base font-semibold tabular-nums text-foreground">
+                        약 {p.dailyShip}개
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span className="font-mono text-base font-semibold tabular-nums text-foreground">
+                        {p.carriers}
+                      </span>
+                      {p.carrierNote ? (
+                        <span className="mt-0.5 block text-xs text-muted-foreground">{p.carrierNote}</span>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3.5 text-pretty leading-relaxed text-foreground">
+                      {p.placement}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       </section>
 
