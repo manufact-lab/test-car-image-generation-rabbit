@@ -122,9 +122,7 @@ export function LayoutPlanner() {
         <div>
           <p className="text-sm font-semibold text-foreground">브라운필드 전용 · 기존 창고 배치 설계</p>
           <p className="mt-1 text-pretty text-xs leading-relaxed text-muted-foreground">
-            이미 설치된 4-way shuttle 랙의 실제 규격(통로·베이·단·레인 깊이)을 담당자가 입력하면,
-            앞서 분석한 출하 데이터의 등급 구성에 맞춰 어느 등급을 어느 위치에 배치해야 하는지 산출합니다.
-            산출된 초기 배치는 공장 적용 단계에서 선택한 공장의 대시보드에 반영됩니다.
+            랙 규격을 입력하면 등급별 배치 위치를 자동으로 산출합니다.
           </p>
         </div>
       </div>
@@ -193,7 +191,7 @@ export function LayoutPlanner() {
                   <span className="font-semibold text-success">
                     +{cap.surplus.toLocaleString()} PLT
                   </span>{" "}
-                  여유. 4-way shuttle 재배치 여유율(8%)을 포함해도 안정적으로 수용 가능합니다.
+                  여유. 충분히 수용 가능합니다.
                 </p>
               </div>
             ) : (
@@ -204,8 +202,7 @@ export function LayoutPlanner() {
                   <span className="font-semibold text-destructive">
                     {cap.surplus.toLocaleString()} PLT
                   </span>{" "}
-                  부족합니다. 통로/베이/단 또는 레인 깊이를 늘려 {STORAGE_SIZING.requiredPlt.toLocaleString()} PLT
-                  이상을 확보하세요.
+                  부족합니다. 규격을 늘려주세요.
                 </p>
               </div>
             )}
@@ -238,67 +235,37 @@ export function LayoutPlanner() {
       />
 
       {/* 분석 기반 최적 배치 결과 */}
-      <section className="rounded-xl border border-border bg-card">
-        <div className="border-b border-border px-5 py-4">
-          <h2 className="text-sm font-semibold text-foreground">분석 기반 등급별 최적 배치</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            2026년 3~4월 출하 데이터 ABC 분석 결과를 입력한 규격에 매핑한 배치 원칙입니다
-          </p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                <th className="px-5 py-2.5 font-medium">등급</th>
-                <th className="px-3 py-2.5 font-medium">SKU / 출하비중</th>
-                <th className="px-3 py-2.5 font-medium">배치 깊이</th>
-                <th className="px-3 py-2.5 font-medium">레벨·통로</th>
-                <th className="px-3 py-2.5 font-medium">피킹 모드</th>
-                <th className="px-5 py-2.5 font-medium">배치 근거</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ZONE_PLAN.map((z) => (
-                <tr key={z.grade} className="border-b border-border/60 align-top last:border-0">
-                  <td className="px-5 py-3">
-                    <span
-                      className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-bold text-primary-foreground"
-                      style={{ backgroundColor: GRADE_COLOR[z.grade] }}
-                    >
-                      {GRADE_LABEL[z.grade]}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
-                      {z.sku} SKU
-                    </div>
-                    <div className="text-xs text-muted-foreground">출하 {z.shipmentPct}%</div>
-                  </td>
-                  <td className="px-3 py-3 text-foreground">{z.depthBand}</td>
-                  <td className="px-3 py-3 text-foreground">
-                    <div>{z.level}</div>
-                    <div className="text-xs text-muted-foreground">{z.access}</div>
-                  </td>
-                  <td className="px-3 py-3 text-xs text-foreground">{z.pickMode}</td>
-                  <td className="px-5 py-3 text-xs leading-relaxed text-muted-foreground">
-                    {z.rationale}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold text-foreground">등급별 배치 결과</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {ZONE_PLAN.map((z) => (
+            <div key={z.grade} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+              <span
+                className="inline-flex w-fit items-center rounded-md px-2 py-1 text-xs font-bold text-primary-foreground"
+                style={{ backgroundColor: GRADE_COLOR[z.grade] }}
+              >
+                {GRADE_LABEL[z.grade]}
+              </span>
+              <div className="flex items-baseline gap-1">
+                <span className="font-mono text-3xl font-semibold tabular-nums text-foreground">
+                  {z.shipmentPct}
+                </span>
+                <span className="text-sm text-muted-foreground">% 출하</span>
+                <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
+                  {z.sku} SKU
+                </span>
+              </div>
+              <p className="text-pretty text-sm leading-relaxed text-foreground">
+                {z.depthBand} · {z.level}에 배치합니다.
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* CTA */}
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-6 text-center">
-        <p className="text-sm font-medium text-foreground">
-          입력한 창고 규격과 분석 기반 최적 배치를 확정합니다.
-        </p>
-        <p className="max-w-xl text-xs text-muted-foreground">
-          다음 단계(공장 적용)에서 이 배치를 적용할 공장을 선택하면, 해당 공장 대시보드가 이 초기 배치로
-          세팅되고 이후 주문 변동에 따라 계속 재최적화됩니다.
-        </p>
+        <p className="text-sm font-medium text-foreground">이 배치로 확정하고 공장에 적용합니다.</p>
         {cap.ok ? (
           <Link
             href={dashUrl}
