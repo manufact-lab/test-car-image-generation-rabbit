@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Boxes, ArrowRight, ArrowLeft, Package, Layers, Sparkles } from "lucide-react"
 import { FACTORY_LIST } from "@/lib/inventory-data"
+import { WorkflowStepper } from "@/components/workflow-stepper"
 
 export default async function FactorySelectPage({
   searchParams,
@@ -38,13 +39,11 @@ export default async function FactorySelectPage({
           </Link>
         </div>
       </header>
+      <WorkflowStepper current={4} />
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 py-12 sm:px-6">
         <div className="mb-8">
-          {optimized && (
-            <p className="text-sm font-medium uppercase tracking-widest text-primary">4. 공장 적용</p>
-          )}
-          <h1 className="mt-2 text-balance text-3xl font-semibold tracking-tight text-foreground">
+          <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground">
             {optimized ? "최적화할 공장 선택" : "공장 선택"}
           </h1>
           <p className="mt-2 text-pretty text-sm text-muted-foreground">

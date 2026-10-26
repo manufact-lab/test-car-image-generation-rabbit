@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Boxes, ArrowLeft } from "lucide-react"
 import { LayoutPlanner } from "@/components/layout/layout-planner"
+import { WorkflowStepper } from "@/components/workflow-stepper"
 
 export default function LayoutPage() {
   return (
@@ -25,13 +26,11 @@ export default function LayoutPage() {
           </Link>
         </div>
       </header>
+      <WorkflowStepper current={3} />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         <div className="mb-6">
-          <p className="text-sm font-medium uppercase tracking-widest text-primary">
-            3. 브라운필드
-          </p>
-          <h1 className="mt-2 text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             브라운필드 4-way shuttle 배치
           </h1>
           <p className="mt-2 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground">
